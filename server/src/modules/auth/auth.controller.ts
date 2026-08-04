@@ -1,23 +1,63 @@
-import type { FastifyReply, FastifyRequest } from "fastify";
+import {
+    registerUser,
+    loginUser
+} from "./auth.service";
+
+
 
 export async function register(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: any,
+    reply: any
 ) {
-  return reply.send({
-    success: true,
-    message: "Register endpoint working",
-    data: request.body,
-  });
+
+    try {
+
+        const result = await registerUser(
+            request.body
+        );
+
+        return reply.send(result);
+
+    } catch (error: any) {
+
+        return reply.status(400).send({
+            message: error.message
+        });
+
+    }
+
 }
 
+
+
 export async function login(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: any,
+    reply: any
 ) {
-  return reply.send({
-    success: true,
-    message: "Login endpoint working",
-    data: request.body,
-  });
+
+    try {
+
+        const {
+            email,
+            password
+        } = request.body;
+
+
+        const result = await loginUser(
+            email,
+            password
+        );
+
+
+        return reply.send(result);
+
+
+    } catch (error: any) {
+
+        return reply.status(400).send({
+            message: error.message
+        });
+
+    }
+
 }
