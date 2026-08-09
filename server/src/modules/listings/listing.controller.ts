@@ -17,11 +17,6 @@ import {
 } from "./listing.service.js";
 
 
-import {
-    checkListingLimit
-
-} from "../sellers/seller.access.service.js";
-
 
 
 // ===============================
@@ -29,39 +24,34 @@ import {
 // ===============================
 
 export async function createListingController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
+
 
     const user =
         request.user as {
+
             id:string;
+
         };
 
 
     try {
 
 
-        // ===============================
-        // CHECK SELLER LISTING LIMIT
-        // ===============================
-
-        await checkListingLimit(
-
-    user.id
-
-);
-
-
-
         const listing =
-    await createNewListing(
+            await createNewListing(
 
-        request.body,
+                request.body,
 
-        user.id
+                user.id
 
-    );
+            );
+
 
 
         return reply.send({
@@ -74,7 +64,7 @@ export async function createListingController(
 
 
 
-    } catch(error:any){
+    }catch(error:any){
 
 
         return reply.code(403).send({
@@ -88,7 +78,10 @@ export async function createListingController(
 
     }
 
+
 }
+
+
 
 
 
@@ -97,9 +90,13 @@ export async function createListingController(
 // ===============================
 
 export async function getListingsController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
+
 
     const listings =
         await fetchListings();
@@ -114,7 +111,10 @@ export async function getListingsController(
 
     });
 
+
 }
+
+
 
 
 
@@ -123,19 +123,18 @@ export async function getListingsController(
 // ===============================
 
 export async function searchListingsController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
-
-    const filters =
-        request.query;
-
 
 
     const listings =
         await fetchSearchListings(
 
-            filters
+            request.query
 
         );
 
@@ -149,7 +148,10 @@ export async function searchListingsController(
 
     });
 
+
 }
+
+
 
 
 
@@ -158,9 +160,13 @@ export async function searchListingsController(
 // ===============================
 
 export async function getListingByIdController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
+
 
     const params =
         request.params as {
@@ -182,6 +188,7 @@ export async function getListingByIdController(
 
     if(!listing){
 
+
         return reply.code(404).send({
 
             success:false,
@@ -189,6 +196,7 @@ export async function getListingByIdController(
             message:"Listing not found"
 
         });
+
 
     }
 
@@ -202,7 +210,12 @@ export async function getListingByIdController(
 
     });
 
+
 }
+
+
+
+
 
 
 
@@ -211,9 +224,13 @@ export async function getListingByIdController(
 // ===============================
 
 export async function getMyListingsController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
+
 
     const user =
         request.user as {
@@ -241,7 +258,10 @@ export async function getMyListingsController(
 
     });
 
+
 }
+
+
 
 
 
@@ -250,9 +270,13 @@ export async function getMyListingsController(
 // ===============================
 
 export async function updateListingController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
+
 
     const user =
         request.user as {
@@ -260,7 +284,6 @@ export async function updateListingController(
             id:string;
 
         };
-
 
 
     const params =
@@ -279,7 +302,7 @@ export async function updateListingController(
 
             user.id,
 
-            request.body as any
+            request.body
 
         );
 
@@ -293,7 +316,12 @@ export async function updateListingController(
 
     });
 
+
 }
+
+
+
+
 
 
 
@@ -302,9 +330,13 @@ export async function updateListingController(
 // ===============================
 
 export async function deleteListingController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
+
 
     const user =
         request.user as {
@@ -312,7 +344,6 @@ export async function deleteListingController(
             id:string;
 
         };
-
 
 
     const params =
@@ -342,7 +373,11 @@ export async function deleteListingController(
 
     });
 
+
 }
+
+
+
 
 
 
@@ -351,9 +386,13 @@ export async function deleteListingController(
 // ===============================
 
 export async function changeStatusController(
+
     request:FastifyRequest,
+
     reply:FastifyReply
+
 ){
+
 
     const user =
         request.user as {
@@ -363,14 +402,12 @@ export async function changeStatusController(
         };
 
 
-
     const params =
         request.params as {
 
             id:string;
 
         };
-
 
 
     const body =
@@ -402,5 +439,6 @@ export async function changeStatusController(
         listing
 
     });
+
 
 }

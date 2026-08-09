@@ -32,7 +32,6 @@ export async function sellerListingsController(
 
         const listings =
             await getSellerListings(
-                request.server,
                 user.id
             );
 

@@ -1,22 +1,23 @@
 import { prisma } from "../../lib/prisma.js";
 
 
-
 // =================================
 // GET SELLER LISTINGS
 // =================================
 
 export async function getSellerListings(
-
     userId:string
-
 ){
+
 
     return prisma.listing.findMany({
 
         where:{
+
             ownerId:userId
+
         },
+
 
         include:{
 
@@ -26,13 +27,19 @@ export async function getSellerListings(
 
         },
 
+
         orderBy:{
+
             createdAt:"desc"
+
         }
 
     });
 
 }
+
+
+
 
 
 
@@ -52,6 +59,7 @@ export async function updateSellerListing(
 
 
     const listing =
+
         await prisma.listing.findUnique({
 
             where:{
@@ -85,7 +93,9 @@ export async function updateSellerListing(
     return prisma.listing.update({
 
         where:{
+
             id:listingId
+
         },
 
 
@@ -93,7 +103,10 @@ export async function updateSellerListing(
 
     });
 
+
 }
+
+
 
 
 
@@ -113,6 +126,7 @@ export async function deleteSellerListing(
 
 
     const listing =
+
         await prisma.listing.findUnique({
 
             where:{
@@ -146,7 +160,9 @@ export async function deleteSellerListing(
     await prisma.listing.delete({
 
         where:{
+
             id:listingId
+
         }
 
     });
@@ -155,7 +171,12 @@ export async function deleteSellerListing(
 
     return true;
 
+
 }
+
+
+
+
 
 
 
@@ -174,6 +195,7 @@ export async function markListingSold(
 
 
     const listing =
+
         await prisma.listing.findUnique({
 
             where:{
@@ -207,18 +229,23 @@ export async function markListingSold(
     return prisma.listing.update({
 
         where:{
+
             id:listingId
+
         },
 
 
         data:{
 
+
             status:"SOLD",
 
             available:false
 
+
         }
 
     });
+
 
 }

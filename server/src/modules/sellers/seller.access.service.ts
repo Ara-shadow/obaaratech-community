@@ -1,4 +1,5 @@
-import { prisma } from "../../lib/prisma.js";
+import { prisma } from "../../database/prisma.js";
+
 
 // =================================
 // GET SELLER PLAN
@@ -8,9 +9,7 @@ export async function getSellerPlan(
     userId:string
 ){
 
-
     const subscription =
-
         await prisma.sellerSubscription.findFirst({
 
             where:{
@@ -32,14 +31,9 @@ export async function getSellerPlan(
         });
 
 
-
-    // Default FREE PLAN
-
     if(!subscription){
 
-
         const freePlan =
-
             await prisma.sellerPlan.findFirst({
 
                 where:{
@@ -54,12 +48,9 @@ export async function getSellerPlan(
     }
 
 
-
     return subscription.plan;
 
 }
-
-
 
 
 
@@ -74,15 +65,10 @@ export async function checkListingLimit(
 
 ){
 
-
     const plan =
-
         await getSellerPlan(
-
             userId
-
         );
-
 
 
     if(!plan){
@@ -94,7 +80,6 @@ export async function checkListingLimit(
 
 
     const count =
-
         await prisma.listing.count({
 
             where:{
@@ -114,26 +99,18 @@ export async function checkListingLimit(
 
 
 
-
     if(count >= plan.maxListings){
 
-
         throw new Error(
-
             `Your ${plan.name} plan allows only ${plan.maxListings} listings`
-
         );
 
     }
 
 
-
     return true;
 
 }
-
-
-
 
 
 
@@ -153,13 +130,9 @@ export async function checkImageLimit(
 
 
     const plan =
-
         await getSellerPlan(
-
             userId
-
         );
-
 
 
     if(!plan){
@@ -170,9 +143,7 @@ export async function checkImageLimit(
 
 
 
-
     const imageCount =
-
         await prisma.listingImage.count({
 
             where:{
@@ -183,19 +154,13 @@ export async function checkImageLimit(
 
 
 
-
-
     if(imageCount >= plan.imageLimit){
 
-
         throw new Error(
-
             `Your ${plan.name} plan allows only ${plan.imageLimit} images`
-
         );
 
     }
-
 
 
     return true;
@@ -205,12 +170,8 @@ export async function checkImageLimit(
 
 
 
-
-
-
-
 // =================================
-// CHECK FEATURED ACCESS
+// FEATURED LISTING ACCESS
 // =================================
 
 export async function canFeatureListing(
@@ -219,21 +180,14 @@ export async function canFeatureListing(
 
 ){
 
-
     const plan =
-
         await getSellerPlan(
-
             userId
-
         );
 
 
-
     return Boolean(
-
         plan?.featuredListing
-
     );
 
 }
@@ -241,12 +195,8 @@ export async function canFeatureListing(
 
 
 
-
-
-
-
 // =================================
-// CHECK VERIFIED BADGE
+// VERIFIED BADGE
 // =================================
 
 export async function hasVerifiedBadge(
@@ -255,21 +205,14 @@ export async function hasVerifiedBadge(
 
 ){
 
-
     const plan =
-
         await getSellerPlan(
-
             userId
-
         );
 
 
-
     return Boolean(
-
         plan?.verifiedBadge
-
     );
 
 }
@@ -277,12 +220,8 @@ export async function hasVerifiedBadge(
 
 
 
-
-
-
-
 // =================================
-// GET SELLER BENEFITS
+// SELLER BENEFITS
 // =================================
 
 export async function getSellerBenefits(
@@ -291,48 +230,33 @@ export async function getSellerBenefits(
 
 ){
 
-
     const plan =
-
         await getSellerPlan(
-
             userId
-
         );
-
 
 
     return {
 
 
         planName:
-
             plan?.name ?? "FREE",
 
 
         maxListings:
-
             plan?.maxListings ?? 0,
 
 
         imageLimit:
-
             plan?.imageLimit ?? 0,
 
 
         featuredListing:
-
-            Boolean(
-                plan?.featuredListing
-            ),
+            Boolean(plan?.featuredListing),
 
 
         verifiedBadge:
-
-            Boolean(
-                plan?.verifiedBadge
-            )
-
+            Boolean(plan?.verifiedBadge)
 
     };
 

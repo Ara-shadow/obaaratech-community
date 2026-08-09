@@ -1,146 +1,83 @@
-import type { FastifyInstance } from "fastify";
-
-import { prisma } from "../../lib/prisma.js";
-
+import { prisma } from "../../database/prisma.js";
 
 import {
-  createListingWithFeatured,
-  getListings,
-  getListingById,
-  getMyListings,
-  updateListing as updateListingRepository,
-  deleteListing,
-  changeListingStatus,
-  searchListings
+    createListingWithFeatured,
+    getListings,
+    getListingById,
+    getMyListings,
+    updateListing as updateListingRepository,
+    deleteListing,
+    changeListingStatus,
+    searchListings
 } from "./listing.repository.js";
 
 
 import {
-  checkListingLimit
+    checkListingLimit
 } from "../sellers/seller.access.service.js";
 
 
 
 
-// ============================
-// UPDATE LISTING STATUS
-// ============================
-
-export async function updateListingStatus(
-
-  id:string,
-
-  userId:string,
-
-  status:string
-
-){
-
-
-  return changeListingStatus(
-
-    id,
-
-    status
-
-  );
-
-
-}
-
-
-
-
-
-
-
-// ============================
+// =================================
 // CREATE LISTING
-// ============================
+// =================================
 
 export async function createNewListing(
 
-  app:FastifyInstance,
+    data:any,
 
-  data:any,
-
-  userId:string
+    userId:string
 
 ){
 
+    await checkListingLimit(
 
+        userId
 
-  await checkListingLimit(
-
-    app,
-
-    userId
-
-  );
+    );
 
 
 
+    const subscription =
+
+        await prisma.sellerSubscription.findFirst({
+
+            where:{
+
+                userId,
+
+                active:true
+
+            },
+
+            include:{
+
+                plan:true
+
+            }
+
+        });
 
 
-  const subscription =
 
-    await prisma.sellerSubscription.findFirst({
+    const featured =
 
-
-      where:{
+        subscription?.plan?.featuredListing ?? false;
 
 
-        userId,
 
-        active:true
+    return createListingWithFeatured({
 
+        ...data,
 
-      },
+        ownerId:userId,
 
-
-      include:{
-
-
-        plan:true
-
-
-      }
-
+        featured
 
     });
 
 
-
-
-
-
-
-  const featured =
-
-    subscription?.plan?.featuredListing ?? false;
-
-
-
-
-
-
-
-  return createListingWithFeatured({
-
-
-    ...data,
-
-
-    ownerId:userId,
-
-
-    featured
-
-
-  });
-
-
-
 }
 
 
@@ -149,17 +86,13 @@ export async function createNewListing(
 
 
 
-
-
-// ============================
+// =================================
 // GET ALL LISTINGS
-// ============================
+// =================================
 
 export async function fetchListings(){
 
-
-  return getListings();
-
+    return getListings();
 
 }
 
@@ -169,25 +102,21 @@ export async function fetchListings(){
 
 
 
-
-
-// ============================
+// =================================
 // SEARCH LISTINGS
-// ============================
+// =================================
 
 export async function fetchSearchListings(
 
-  filters:any
+    filters:any
 
 ){
 
+    return searchListings(
 
-  return searchListings(
+        filters
 
-    filters
-
-  );
-
+    );
 
 }
 
@@ -197,25 +126,21 @@ export async function fetchSearchListings(
 
 
 
-
-
-// ============================
+// =================================
 // GET SINGLE LISTING
-// ============================
+// =================================
 
 export async function fetchListingById(
 
-  id:string
+    id:string
 
 ){
 
+    return getListingById(
 
-  return getListingById(
+        id
 
-    id
-
-  );
-
+    );
 
 }
 
@@ -225,25 +150,21 @@ export async function fetchListingById(
 
 
 
-
-
-// ============================
+// =================================
 // GET MY LISTINGS
-// ============================
+// =================================
 
 export async function fetchMyListings(
 
-  userId:string
+    userId:string
 
 ){
 
+    return getMyListings(
 
-  return getMyListings(
+        userId
 
-    userId
-
-  );
-
+    );
 
 }
 
@@ -253,57 +174,29 @@ export async function fetchMyListings(
 
 
 
-
-
-// ============================
+// =================================
 // UPDATE LISTING
-// ============================
+// =================================
 
 export async function editListing(
 
-  id:string,
+    id:string,
 
-  ownerId:string,
+    ownerId:string,
 
-  data:{
-
-
-    title?:string;
-
-
-    description?:string;
-
-
-    price?:number;
-
-
-    negotiable?:boolean;
-
-
-    location?:string;
-
-
-    type?:string;
-
-
-    categoryId?:string;
-
-
-  }
+    data:any
 
 ){
 
+    return updateListingRepository(
 
-  return updateListingRepository(
+        id,
 
-    id,
+        ownerId,
 
-    ownerId,
+        data
 
-    data
-
-  );
-
+    );
 
 }
 
@@ -313,28 +206,54 @@ export async function editListing(
 
 
 
-
-
-// ============================
+// =================================
 // DELETE LISTING
-// ============================
+// =================================
 
 export async function removeListing(
 
-  id:string,
+    id:string,
 
-  ownerId:string
+    ownerId:string
 
 ){
 
+    return deleteListing(
 
-  return deleteListing(
+        id,
 
-    id,
+        ownerId
 
-    ownerId
+    );
 
-  );
+}
 
+
+
+
+
+
+
+// =================================
+// CHANGE STATUS
+// =================================
+
+export async function updateListingStatus(
+
+    id:string,
+
+    userId:string,
+
+    status:string
+
+){
+
+    return changeListingStatus(
+
+        id,
+
+        status
+
+    );
 
 }

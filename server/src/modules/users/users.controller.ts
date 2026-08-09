@@ -3,7 +3,8 @@ import type {
     FastifyRequest,
 } from "fastify";
 
-import { findUserByEmail } from "../auth/auth.repository.js";
+import { prisma } from "../../lib/prisma.js";
+
 
 
 export async function me(
@@ -11,15 +12,48 @@ export async function me(
     reply: FastifyReply
 ) {
 
-    const userEmail = (request.user as any).email;
+
+    const authUser =
+        request.user as {
+            id:string;
+            role:string;
+        };
 
 
-    const user = await findUserByEmail(
-        userEmail
-    );
+
+    const user =
+        await prisma.user.findUnique({
+
+            where:{
+                id:authUser.id
+            },
+
+            select:{
+
+                id:true,
+
+                name:true,
+
+                email:true,
+
+                phone:true,
+
+                role:true,
+
+                verifiedSeller:true,
+
+                avatar:true,
+
+                createdAt:true
+
+            }
+
+        });
 
 
-    if (!user) {
+
+    if(!user){
+
 
         return reply.code(404).send({
 
@@ -29,29 +63,18 @@ export async function me(
 
         });
 
+
     }
+
 
 
     return reply.send({
 
         success:true,
 
-        user:{
-
-            id:user.id,
-
-            name:user.name,
-
-            email:user.email,
-
-            phone:user.phone,
-
-            role:user.role,
-
-            verifiedSeller:user.verifiedSeller
-
-        }
+        user
 
     });
+
 
 }
