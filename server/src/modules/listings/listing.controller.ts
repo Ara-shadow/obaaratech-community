@@ -1,79 +1,83 @@
 import type {
-  FastifyReply,
-  FastifyRequest,
+    FastifyReply,
+    FastifyRequest
 } from "fastify";
 
 
 import {
-  createListingSchema,
-} from "./listing.schema.js";
+    createNewListing,
+    fetchListings,
+    fetchListingById,
+    fetchMyListings,
+    editListing,
+    removeListing,
+    fetchSearchListings,
+    updateListingStatus
+
+} from "./listing.service.js";
 
 
 import {
-  createNewListing,
-  fetchListings,
-  fetchListingById,
-  fetchMyListings,
-} from "./listing.service.js";
+    checkListingLimit
 
-import {
-  updateListing
-} from "./listing.service.js";
+} from "../sellers/seller.access.service.js";
 
-export async function updateListingController(
-    request: FastifyRequest,
-    reply: FastifyReply
+
+
+// ===============================
+// CREATE LISTING
+// ===============================
+
+export async function createListingController(
+    request:FastifyRequest,
+    reply:FastifyReply
 ){
 
-    try{
-
-
-        const user =
-            request.user as {
-                id:string;
-            };
-
-
-
-        const {
-            id
-        } =
-        request.params as {
+    const user =
+        request.user as {
             id:string;
         };
 
 
+    try {
 
-        const updated =
-            await updateListing(
 
-                id,
+        // ===============================
+        // CHECK SELLER LISTING LIMIT
+        // ===============================
 
-                user.id,
+        await checkListingLimit(
 
-                request.body as any
+    user.id
 
-            );
+);
 
+
+
+        const listing =
+    await createNewListing(
+
+        request.body,
+
+        user.id
+
+    );
 
 
         return reply.send({
 
             success:true,
 
-            message:
-            "Listing updated successfully",
-
-            listing:updated
+            listing
 
         });
 
 
 
-    }catch(error:any){
+    } catch(error:any){
 
 
-        return reply.code(400).send({
+        return reply.code(403).send({
 
             success:false,
 
@@ -86,221 +90,317 @@ export async function updateListingController(
 
 }
 
-export async function createListingController(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
-
-  try {
 
 
-    const user =
-      request.user as {
-        id:string;
-        email?:string;
-        role?:string;
-      };
+// ===============================
+// GET ALL LISTINGS
+// ===============================
+
+export async function getListingsController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
+
+    const listings =
+        await fetchListings();
 
 
-    console.log(
-      "CREATE LISTING USER:",
-      user
-    );
+
+    return reply.send({
+
+        success:true,
+
+        listings
+
+    });
+
+}
 
 
-    if(!user?.id){
 
-      return reply.code(401).send({
+// ===============================
+// SEARCH LISTINGS
+// ===============================
 
-        success:false,
+export async function searchListingsController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
 
-        message:"Unauthorized"
+    const filters =
+        request.query;
 
-      });
+
+
+    const listings =
+        await fetchSearchListings(
+
+            filters
+
+        );
+
+
+
+    return reply.send({
+
+        success:true,
+
+        listings
+
+    });
+
+}
+
+
+
+// ===============================
+// SINGLE LISTING
+// ===============================
+
+export async function getListingByIdController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
+
+    const params =
+        request.params as {
+
+            id:string;
+
+        };
+
+
+
+    const listing =
+        await fetchListingById(
+
+            params.id
+
+        );
+
+
+
+    if(!listing){
+
+        return reply.code(404).send({
+
+            success:false,
+
+            message:"Listing not found"
+
+        });
 
     }
 
 
 
-    const data =
-      createListingSchema.parse(
-        request.body
-      );
+    return reply.send({
+
+        success:true,
+
+        listing
+
+    });
+
+}
+
+
+
+// ===============================
+// MY LISTINGS
+// ===============================
+
+export async function getMyListingsController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
+
+    const user =
+        request.user as {
+
+            id:string;
+
+        };
+
+
+
+    const listings =
+        await fetchMyListings(
+
+            user.id
+
+        );
+
+
+
+    return reply.send({
+
+        success:true,
+
+        listings
+
+    });
+
+}
+
+
+
+// ===============================
+// UPDATE LISTING
+// ===============================
+
+export async function updateListingController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
+
+    const user =
+        request.user as {
+
+            id:string;
+
+        };
+
+
+
+    const params =
+        request.params as {
+
+            id:string;
+
+        };
 
 
 
     const listing =
-      await createNewListing(
-        data,
+        await editListing(
+
+            params.id,
+
+            user.id,
+
+            request.body as any
+
+        );
+
+
+
+    return reply.send({
+
+        success:true,
+
+        listing
+
+    });
+
+}
+
+
+
+// ===============================
+// DELETE LISTING
+// ===============================
+
+export async function deleteListingController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
+
+    const user =
+        request.user as {
+
+            id:string;
+
+        };
+
+
+
+    const params =
+        request.params as {
+
+            id:string;
+
+        };
+
+
+
+    await removeListing(
+
+        params.id,
+
         user.id
-      );
+
+    );
 
 
 
-    return reply.code(201).send({
+    return reply.send({
 
-      success:true,
+        success:true,
 
-      message:
-        "Listing created successfully",
-
-      listing,
+        message:"Listing deleted"
 
     });
 
+}
 
 
-  }catch(error:any){
+
+// ===============================
+// CHANGE STATUS
+// ===============================
+
+export async function changeStatusController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
+
+    const user =
+        request.user as {
+
+            id:string;
+
+        };
 
 
-    return reply.code(400).send({
 
-      success:false,
+    const params =
+        request.params as {
 
-      message:error.message,
+            id:string;
+
+        };
+
+
+
+    const body =
+        request.body as {
+
+            status:string;
+
+        };
+
+
+
+    const listing =
+        await updateListingStatus(
+
+            params.id,
+
+            user.id,
+
+            body.status
+
+        );
+
+
+
+    return reply.send({
+
+        success:true,
+
+        listing
 
     });
-
-
-  }
-
-}
-
-
-
-
-
-
-export async function getListingsController(
- request:FastifyRequest,
- reply:FastifyReply
-){
-
- const listings =
-   await fetchListings();
-
-
- return reply.send({
-
-   success:true,
-
-   listings,
-
- });
-
-}
-
-
-
-
-
-
-export async function getListingByIdController(
- request:FastifyRequest,
- reply:FastifyReply
-){
-
- const {
-   id
- } =
- request.params as {
-   id:string;
- };
-
-
-
- const listing =
-   await fetchListingById(id);
-
-
-
- if(!listing){
-
-   return reply.code(404).send({
-
-     success:false,
-
-     message:"Listing not found",
-
-   });
-
- }
-
-
-
- return reply.send({
-
-   success:true,
-
-   listing,
-
- });
-
-}
-
-
-
-
-
-
-
-export async function getMyListingsController(
- request:FastifyRequest,
- reply:FastifyReply
-){
-
- try {
-
-
-   const user =
-     request.user as {
-       id:string;
-     };
-
-
-   if(!user?.id){
-
-     return reply.code(401).send({
-
-       success:false,
-
-       message:"Unauthorized"
-
-     });
-
-   }
-
-
-
-   const listings =
-     await fetchMyListings(
-       user.id
-     );
-
-
-
-   return reply.send({
-
-     success:true,
-
-     listings,
-
-   });
-
-
-
- }catch(error:any){
-
-
-   return reply.code(400).send({
-
-     success:false,
-
-     message:error.message,
-
-   });
-
-
- }
 
 }

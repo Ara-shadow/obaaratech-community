@@ -1,121 +1,212 @@
 import type {
- FastifyReply,
- FastifyRequest,
+
+  FastifyRequest,
+
+  FastifyReply
+
 } from "fastify";
 
 
+
 import {
- addReview,
- fetchListingReviews,
- removeReview,
+
+  createReviewSchema
+
+} from "./review.schema.js";
+
+
+
+import {
+
+  addReview,
+
+  fetchListingReviews
+
 } from "./review.service.js";
 
 
 
+
+
+
+
+// ==============================
+// CREATE REVIEW
+// ==============================
+
 export async function createReviewController(
- request:FastifyRequest,
- reply:FastifyReply
+
+  request: FastifyRequest,
+
+  reply: FastifyReply
+
 ){
 
- const user =
- request.user as {
-  id:string;
- };
+
+  try {
 
 
- const { listingId } =
- request.params as {
-  listingId:string;
- };
+    const user = request.user as {
+
+      id:string;
+
+    };
 
 
- const body =
- request.body as {
-  rating:number;
-  comment?:string;
- };
+
+    const {
+
+      listingId
+
+    } = request.params as {
+
+      listingId:string;
+
+    };
 
 
- const review =
- await addReview({
-
-   rating:body.rating,
-
-   ...(body.comment
-     ? { comment: body.comment }
-     : {}),
-
-   userId:user.id,
-
-   listingId,
-
- });
 
 
- return reply.code(201).send({
+    const data =
 
-  success:true,
+      createReviewSchema.parse(
 
-  message:"Review added",
+        request.body
 
-  review,
+      );
 
- });
+
+
+
+
+    const review =
+
+      await addReview(
+
+        request.server,
+
+        {
+
+          rating:data.rating,
+
+          comment:data.comment,
+
+          userId:user.id,
+
+          listingId
+
+        }
+
+      );
+
+
+
+
+
+    return reply.code(201).send({
+
+      success:true,
+
+      message:"Review created successfully",
+
+      review
+
+    });
+
+
+
+  } catch(error:any){
+
+
+    return reply.code(400).send({
+
+      success:false,
+
+      message:error.message
+
+    });
+
+
+  }
+
 
 }
 
 
 
 
-export async function getReviewsController(
- request:FastifyRequest,
- reply:FastifyReply
+
+
+
+
+
+// ==============================
+// GET LISTING REVIEWS
+// ==============================
+
+export async function getListingReviewsController(
+
+  request:FastifyRequest,
+
+  reply:FastifyReply
+
 ){
 
- const { listingId } =
- request.params as {
-  listingId:string;
- };
+
+  try {
 
 
- const reviews =
- await fetchListingReviews(listingId);
+    const {
 
+      listingId
 
- return reply.send({
+    } = request.params as {
 
-  success:true,
+      listingId:string;
 
-  reviews,
-
- });
-
-}
+    };
 
 
 
 
 
-export async function deleteReviewController(
- request:FastifyRequest,
- reply:FastifyReply
-){
+    const result =
 
- const { id } =
- request.params as {
-  id:string;
- };
+      await fetchListingReviews(
 
+        request.server,
 
- await removeReview(id);
+        listingId
+
+      );
 
 
- return reply.send({
 
-  success:true,
 
-  message:"Review deleted",
 
- });
+    return reply.send({
+
+      success:true,
+
+      ...result
+
+    });
+
+
+
+  } catch(error:any){
+
+
+    return reply.code(400).send({
+
+      success:false,
+
+      message:error.message
+
+    });
+
+
+  }
+
 
 }

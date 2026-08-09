@@ -1,67 +1,216 @@
-import { prisma } from "../../database/prisma.js";
+import type { FastifyInstance } from "fastify";
+
+import { prisma } from "../../lib/prisma.js";
 
 
-export async function createReview(data:{
-  rating:number;
-  comment?:string;
-  userId:string;
-  listingId:string;
-}){
 
-  return prisma.review.create({
+// ==============================
+// CREATE REVIEW
+// ==============================
+
+export async function createReview(
+
+    app: FastifyInstance,
 
     data:{
-      rating:data.rating,
-      comment:data.comment ?? null,
-      userId:data.userId,
-      listingId:data.listingId,
-    },
+        rating:number;
+        comment?:string;
+        userId:string;
+        listingId:string;
+    }
 
-  });
+){
+
+
+    const existingReview =
+
+        await prisma.review.findFirst({
+
+            where:{
+
+                userId:data.userId,
+
+                listingId:data.listingId
+
+            }
+
+        });
+
+
+
+
+    if(existingReview){
+
+        throw new Error(
+
+            "You already reviewed this listing"
+
+        );
+
+    }
+
+
+
+
+
+    return prisma.review.create({
+
+        data:{
+
+            rating:data.rating,
+
+            comment:data.comment,
+
+            userId:data.userId,
+
+            listingId:data.listingId
+
+        },
+
+
+        include:{
+
+
+            user:{
+
+                select:{
+
+                    id:true,
+
+                    name:true,
+
+                    avatar:true,
+
+                    verifiedSeller:true
+
+                }
+
+            },
+
+
+            listing:{
+
+                select:{
+
+                    id:true,
+
+                    title:true,
+
+                    price:true,
+
+                    location:true
+
+                }
+
+            }
+
+
+        }
+
+
+    });
+
 
 }
 
 
+
+
+
+
+
+// ==============================
+// GET LISTING REVIEWS
+// ==============================
 
 export async function getListingReviews(
- listingId:string
+
+    app:FastifyInstance,
+
+    listingId:string
+
 ){
 
- return prisma.review.findMany({
 
-   where:{
-     listingId,
-   },
+    const reviews =
 
-   include:{
-     user:{
-       select:{
-         id:true,
-         name:true,
-       },
-     },
-   },
-
-   orderBy:{
-     createdAt:"desc",
-   },
-
- });
-
-}
+        await prisma.review.findMany({
 
 
+            where:{
 
-export async function deleteReview(
- id:string
-){
+                listingId
 
- return prisma.review.delete({
+            },
 
-   where:{
-     id,
-   },
 
- });
+            include:{
+
+
+                user:{
+
+                    select:{
+
+                        id:true,
+
+                        name:true,
+
+                        avatar:true,
+
+                        verifiedSeller:true
+
+                    }
+
+                }
+
+
+            },
+
+
+            orderBy:{
+
+                createdAt:"desc"
+
+            }
+
+
+        });
+
+
+
+
+
+    const averageRating =
+
+        reviews.length
+
+        ?
+
+        reviews.reduce(
+
+            (sum,r)=>
+
+                sum+r.rating,
+
+            0
+
+        ) / reviews.length
+
+        :
+
+        0;
+
+
+
+
+
+    return {
+
+        averageRating,
+
+        reviews
+
+    };
+
 
 }

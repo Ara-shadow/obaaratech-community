@@ -1,45 +1,63 @@
 import type { FastifyInstance } from "fastify";
 
+
 import {
   addFavouriteController,
   removeFavouriteController,
-  getFavouritesController,
+  getFavouritesController
 } from "./favourite.controller.js";
+
 
 
 export default async function favouriteRoutes(
   app: FastifyInstance
-) {
+){
 
+  // ============================
+  // ADD FAVOURITE
+  // ============================
 
   app.post(
     "/:listingId",
     {
-      onRequest:[
-        app.authenticate,
-      ],
+      preHandler:[
+        app.authenticate
+      ]
     },
     addFavouriteController
   );
 
 
+
+
+  // ============================
+  // REMOVE FAVOURITE
+  // ============================
+
   app.delete(
     "/:listingId",
     {
-      onRequest:[
-        app.authenticate,
-      ],
+      preHandler:[
+        app.authenticate
+      ]
     },
     removeFavouriteController
   );
 
 
+
+
+
+  // ============================
+  // GET MY FAVOURITES
+  // ============================
+
   app.get(
     "/",
     {
-      onRequest:[
-        app.authenticate,
-      ],
+      preHandler:[
+        app.authenticate
+      ]
     },
     getFavouritesController
   );

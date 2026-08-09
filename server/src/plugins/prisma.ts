@@ -1,9 +1,16 @@
+import fp from "fastify-plugin";
 import { PrismaClient } from "@prisma/client";
 
 
-export const prisma = new PrismaClient({
-    log: [
-        "error",
-        "warn"
-    ]
+const prisma = new PrismaClient();
+
+
+export default fp(async function prismaPlugin(app){
+
+  app.decorate(
+    "prisma",
+    prisma
+  );
+
+
 });

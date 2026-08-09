@@ -1,40 +1,78 @@
+import type { FastifyInstance } from "fastify";
+
+
 import {
- createReview,
- getListingReviews,
- deleteReview,
+
+  createReview,
+
+  getListingReviews
+
 } from "./review.repository.js";
 
 
 
+
+
+// ==============================
+// CREATE REVIEW
+// ==============================
+
 export async function addReview(
- data:{
-  rating:number;
-  comment?:string;
-  userId:string;
-  listingId:string;
- }
+
+  app: FastifyInstance,
+
+  data: {
+
+    rating:number;
+
+    comment?:string;
+
+    userId:string;
+
+    listingId:string;
+
+  }
+
 ){
 
- return createReview(data);
+
+  return createReview(
+
+    app,
+
+    data
+
+  );
+
 
 }
 
 
+
+
+
+
+
+// ==============================
+// FETCH LISTING REVIEWS
+// ==============================
 
 export async function fetchListingReviews(
- listingId:string
+
+  app: FastifyInstance,
+
+  listingId:string
+
 ){
 
- return getListingReviews(listingId);
 
-}
+  return getListingReviews(
 
+    app,
 
+    listingId
 
-export async function removeReview(
- id:string
-){
+  );
 
- return deleteReview(id);
 
 }

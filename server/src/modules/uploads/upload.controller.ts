@@ -8,6 +8,69 @@ import fs from "node:fs/promises";
 
 import { prisma } from "../../database/prisma.js";
 
+import {
+    removeListingImage
+} from "./upload.service.js";
+
+export async function deleteImageController(
+    request:FastifyRequest,
+    reply:FastifyReply
+){
+
+    try{
+
+
+        const user =
+            request.user as {
+                id:string;
+            };
+
+
+
+        const {
+            imageId
+        } =
+        request.params as {
+            imageId:string;
+        };
+
+
+
+        await removeListingImage(
+
+            imageId,
+
+            user.id
+
+        );
+
+
+
+        return reply.send({
+
+            success:true,
+
+            message:
+            "Image deleted successfully"
+
+        });
+
+
+    }catch(error:any){
+
+
+        return reply.code(400).send({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
+}
 
 export async function uploadImageController(
  request: FastifyRequest,
@@ -68,7 +131,7 @@ export async function uploadImageController(
 
 
  const image =
- await prisma.listingImage.create({
+ await prisma.image.create({
 
    data:{
      url:`/uploads/${filename}`,

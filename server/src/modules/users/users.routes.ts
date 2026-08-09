@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 
 import {
     me
-} from "./users.controller";
+} from "./users.controller.js";
 
 
 export default async function usersRoutes(
@@ -13,7 +13,7 @@ export default async function usersRoutes(
         "/me",
         {
             preHandler:[
-                (app as any).authenticate
+                app.authenticate
             ]
         },
         me

@@ -5,17 +5,21 @@ import fastifyStatic from "@fastify/static";
 
 import path from "node:path";
 
-
 import { prisma } from "./lib/prisma.js";
 
 import jwtPlugin from "./plugins/jwt.js";
+import authenticatePlugin from "./plugins/authenticate.js";
 
 
+// ===============================
 // ROUTES
+// ===============================
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import usersRoutes from "./modules/users/users.routes.js";
 import profileRoutes from "./modules/profile/profile.routes.js";
+
+import planRoutes from "./modules/plans/plan.routes.js";
 
 import { favouriteRoutes } from "./modules/favourites/index.js";
 
@@ -25,228 +29,523 @@ import likesRoutes from "./modules/likes/likes.routes.js";
 
 import notificationsRoutes from "./modules/notifications/notifications.routes.js";
 
+
+
 import listingRoutes from "./modules/listings/listing.routes.js";
+import categoryRoutes from "./modules/categories/category.routes.js";
+import {
+    marketplaceRoutes
+} from "./modules/marketplace/marketplace.routes.js";
+
 
 import { uploadRoutes } from "./modules/uploads/index.js";
 
 
+// SELLERS
 
+import sellerRoutes from "./modules/sellers/seller.routes.js";
+
+import sellerListingRoutes from "./modules/sellers/seller.listings.routes.js";
+
+
+
+
+// ===============================
+// BUILD APP
+// ===============================
 
 export async function buildApp(){
 
 
 const app = Fastify({
 
-logger:true
+    logger:true,
+
+    trustProxy:true
 
 });
 
 
 
 
+
+// ===============================
+// GLOBAL ERROR HANDLER
+// ===============================
+
+
+app.setErrorHandler(
+(error,request,reply)=>{
+
+
+    request.log.error(error);
+
+
+    reply
+    .code(
+        error.statusCode || 500
+    )
+    .send({
+
+        success:false,
+
+        message:
+        error.message ||
+        "Internal server error"
+
+    });
+
+
+});
+
+
+
+
+
+
+// ===============================
 // CORS
-
-await app.register(cors,{
-
-origin:true
-
-});
+// ===============================
 
 
+await app.register(
+cors,
+{
 
+    origin:true
 
-// FILE UPLOAD SUPPORT
+}
 
-await app.register(multipart);
-
+);
 
 
 
-// SERVE UPLOADED FILES
+
+
+
+// ===============================
+// MULTIPART
+// ===============================
+
+
+await app.register(
+multipart
+);
+
+
+
+
+
+
+
+// ===============================
+// STATIC FILES
+// ===============================
+
 
 await app.register(
 fastifyStatic,
 {
 
-root:path.join(
-process.cwd(),
-"uploads"
-),
+    root:path.join(
+        process.cwd(),
+        "uploads"
+    ),
 
-prefix:"/uploads/"
+    prefix:"/uploads/"
 
 }
+
 );
 
 
 
 
+
+
+// ===============================
 // JWT
+// ===============================
 
-await app.register(jwtPlugin);
+await app.register(
+    jwtPlugin
+);
+
+
+// ===============================
+// AUTHENTICATION
+// ===============================
+
+await app.register(
+    authenticatePlugin
+);
 
 
 
-
+// ===============================
 // AUTH
+// ===============================
+
 
 await app.register(
 authRoutes,
 {
-prefix:"/api/auth"
+    prefix:"/api/auth"
 }
+
 );
 
 
 
 
+
+
+// ===============================
 // USERS
+// ===============================
+
 
 await app.register(
 usersRoutes,
 {
-prefix:"/api/users"
+    prefix:"/api/users"
 }
+
 );
 
 
 
 
+
+
+// ===============================
 // PROFILE
+// ===============================
+
 
 await app.register(
 profileRoutes,
 {
-prefix:"/api/profile"
+    prefix:"/api/profile"
 }
+
 );
 
 
 
 
-// POSTS
+
+// ===============================
+// CATEGORIES
+// ===============================
 
 await app.register(
-postsRoutes,
+categoryRoutes,
 {
-prefix:"/api/posts"
+    prefix:"/api/categories"
 }
+
 );
 
 
 
+// ===============================
+// MARKETPLACE
+// ===============================
 
-// COMMENTS
 
 await app.register(
-commentsRoutes,
+marketplaceRoutes,
 {
-prefix:"/api"
+    prefix:"/api/marketplace"
 }
+
 );
 
 
 
 
-// LIKES
-
-await app.register(
-likesRoutes,
-{
-prefix:"/api"
-}
-);
 
 
 
-
-// NOTIFICATIONS
-
-await app.register(
-notificationsRoutes,
-{
-prefix:"/api"
-}
-);
-
-
-
-
+// ===============================
 // LISTINGS
+// ===============================
+
 
 await app.register(
 listingRoutes,
 {
-prefix:"/api/listings"
+    prefix:"/api/listings"
 }
+
 );
 
 
 
 
+
+
+
+// ===============================
+// POSTS
+// ===============================
+
+
+await app.register(
+postsRoutes,
+{
+    prefix:"/api/posts"
+}
+
+);
+
+
+
+
+
+
+
+// ===============================
+// COMMENTS
+// ===============================
+
+
+await app.register(
+commentsRoutes,
+{
+    prefix:"/api"
+}
+
+);
+
+
+
+
+
+
+
+// ===============================
+// LIKES
+// ===============================
+
+
+await app.register(
+likesRoutes,
+{
+    prefix:"/api"
+}
+
+);
+
+
+
+
+
+
+
+// ===============================
+// NOTIFICATIONS
+// ===============================
+
+
+await app.register(
+notificationsRoutes,
+{
+    prefix:"/api"
+}
+
+);
+
+
+
+
+
+
+
+// ===============================
+// WHATSAPP
+// ===============================
+
+
+
+
+
+
+
+
+
+
+// ===============================
 // FAVOURITES
+// ===============================
+
 
 await app.register(
 favouriteRoutes,
 {
-prefix:"/api/favourites"
+    prefix:"/api/favourites"
 }
+
 );
 
 
 
 
+
+
+
+// ===============================
 // UPLOADS
+// ===============================
+
 
 await app.register(
 uploadRoutes,
 {
-prefix:"/api/uploads"
+    prefix:"/api/uploads"
 }
+
 );
 
 
 
 
+
+
+
+// ===============================
+// SELLER PROFILE
+// ===============================
+
+
+await app.register(
+sellerRoutes,
+{
+    prefix:"/api/sellers"
+}
+
+);
+
+
+
+
+
+
+
+// ===============================
+// SELLER LISTING MANAGEMENT
+// ===============================
+
+
+await app.register(
+sellerListingRoutes,
+{
+    prefix:"/api/sellers"
+}
+
+);
+
+
+
+
+
+
+
+// ===============================
+// SELLER PLANS
+// ===============================
+
+
+await app.register(
+planRoutes,
+{
+    prefix:"/api/plans"
+}
+
+);
+
+
+
+
+
+
+
+
+// ===============================
 // ROOT
+// ===============================
 
-app.get("/",async()=>{
+
+app.get(
+"/",
+async()=>{
+
 
 return {
 
-name:"Obaaratech Community API",
+    name:
+    "Obaaratech Community API",
 
-status:"running",
+    status:
+    "running",
 
-version:"1.0.0"
+    version:
+    "1.0.0"
 
 };
 
-});
+
+}
+
+);
 
 
 
 
+
+
+
+
+// ===============================
 // HEALTH
+// ===============================
 
-app.get("/health",async()=>{
+
+app.get(
+"/health",
+async()=>{
+
 
 return {
 
-success:true,
+    success:true,
 
-message:"API is healthy"
+    message:
+    "API is healthy"
 
 };
 
-});
+
+}
+
+);
 
 
 
 
-// DATABASE TEST
 
-app.get("/database",async()=>{
+
+
+
+// ===============================
+// DATABASE CHECK
+// ===============================
+
+
+app.get(
+"/database",
+async()=>{
 
 
 const users =
@@ -256,22 +555,32 @@ await prisma.user.count();
 
 return {
 
-success:true,
+    success:true,
 
-database:"connected",
+    database:
+    "connected",
 
-users
+    users
 
 };
 
 
-});
+}
+
+);
+
+
+
+
+
 
 
 
 console.log(
 app.printRoutes()
 );
+
+
 
 
 

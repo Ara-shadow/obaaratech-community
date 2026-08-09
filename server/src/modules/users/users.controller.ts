@@ -46,7 +46,9 @@ export async function me(
 
             phone:user.phone,
 
-            role:user.role
+            role:user.role,
+
+            verifiedSeller:user.verifiedSeller
 
         }
 

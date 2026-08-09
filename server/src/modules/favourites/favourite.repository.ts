@@ -1,5 +1,9 @@
-import { prisma } from "../../database/prisma.js";
+import { prisma } from "../../lib/prisma.js";
 
+
+// ============================
+// ADD FAVOURITE
+// ============================
 
 export async function addFavourite(
   userId:string,
@@ -10,14 +14,19 @@ export async function addFavourite(
 
     data:{
       userId,
-      listingId,
-    },
+      listingId
+    }
 
   });
 
 }
 
 
+
+
+// ============================
+// REMOVE FAVOURITE
+// ============================
 
 export async function removeFavourite(
   userId:string,
@@ -27,11 +36,13 @@ export async function removeFavourite(
   return prisma.favourite.delete({
 
     where:{
+
       userId_listingId:{
         userId,
-        listingId,
-      },
-    },
+        listingId
+      }
+
+    }
 
   });
 
@@ -39,33 +50,31 @@ export async function removeFavourite(
 
 
 
-export async function getUserFavourites(
+
+// ============================
+// GET USER FAVOURITES
+// ============================
+
+export async function getMyFavourites(
   userId:string
 ){
 
   return prisma.favourite.findMany({
 
     where:{
-      userId,
+      userId
     },
-
 
     include:{
 
       listing:{
-
         include:{
           images:true,
-          category:true,
-        },
+          category:true
+        }
+      }
 
-      },
-
-    },
-
-    orderBy:{
-      createdAt:"desc",
-    },
+    }
 
   });
 

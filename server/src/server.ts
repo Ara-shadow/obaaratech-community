@@ -2,65 +2,37 @@ import "dotenv/config";
 
 import { buildApp } from "./app.js";
 
-import { prisma } from "./lib/prisma.js";
+
+const start = async()=>{
+
+    const app = await buildApp();
 
 
-const PORT =
-    Number(process.env.PORT) || 5000;
-
-
-
-async function start() {
-
-    try {
-
-
-        await prisma.$connect();
-
-
-        console.log(
-            "✅ Database connected"
-        );
-
-
-
-        const app =
-            await buildApp();
-
-
+    try{
 
         await app.listen({
 
-            port: PORT,
+            port:Number(process.env.PORT) || 5000,
 
-            host: "0.0.0.0"
+            host:"0.0.0.0"
 
         });
 
 
-
         console.log(
-            `🚀 Server running on port ${PORT}`
+            "🚀 Obaaratech Community API running on port 5000"
         );
 
 
-    } catch(error) {
+    }catch(error){
 
-
-        console.error(
-            "❌ Server startup failed:",
-            error
-        );
-
-
-        await prisma.$disconnect();
-
+        app.log.error(error);
 
         process.exit(1);
 
     }
 
-}
+};
 
 
 

@@ -1,0 +1,91 @@
+import { prisma } from "../../lib/prisma.js";
+import cloudinary from "../../config/cloudinary.js";
+
+
+export async function uploadImage(
+  buffer:Buffer
+){
+
+return new Promise<any>(
+
+(resolve,reject)=>{
+
+
+const stream =
+cloudinary.uploader.upload_stream(
+
+{
+folder:"obaaratech/listings"
+},
+
+(error,result)=>{
+
+
+if(error){
+
+reject(error);
+
+return;
+
+}
+
+
+resolve(result);
+
+}
+
+);
+
+
+stream.end(buffer);
+
+
+}
+
+);
+
+}
+
+export async function getListingOwner(listingId: string) {
+  return prisma.listing.findUnique({
+    where: {
+      id: listingId
+    },
+    select: {
+      id: true,
+      ownerId: true
+    }
+  });
+}
+
+export async function addListingImage(
+  listingId: string,
+  url: string
+) {
+  return prisma.listingImage.create({
+    data: {
+      listingId,
+      url
+    }
+  });
+}
+
+export async function deleteListingImage(
+  imageId: string
+) {
+  return prisma.listingImage.delete({
+    where: {
+      id: imageId
+    }
+  });
+}
+
+export async function getListingImage(
+  imageId: string
+) {
+  return prisma.listingImage.findUnique({
+    where: {
+      id: imageId
+    }
+  });
+}

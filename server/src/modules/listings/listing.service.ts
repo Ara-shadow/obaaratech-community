@@ -1,77 +1,221 @@
-import {
-  createListing,
-  getListings,
-  getListingById,
-  getMyListings,
-} from "./listing.repository.js";
-
-
-import type {
-  CreateListingInput,
-} from "./listing.schema.js";
-
+import type { FastifyInstance } from "fastify";
 
 import { prisma } from "../../lib/prisma.js";
 
 
+import {
+  createListingWithFeatured,
+  getListings,
+  getListingById,
+  getMyListings,
+  updateListing as updateListingRepository,
+  deleteListing,
+  changeListingStatus,
+  searchListings
+} from "./listing.repository.js";
 
-export async function fetchMyListings(
-  userId: string
+
+import {
+  checkListingLimit
+} from "../sellers/seller.access.service.js";
+
+
+
+
+// ============================
+// UPDATE LISTING STATUS
+// ============================
+
+export async function updateListingStatus(
+
+  id:string,
+
+  userId:string,
+
+  status:string
+
 ){
 
-  return getMyListings(
-    userId
+
+  return changeListingStatus(
+
+    id,
+
+    status
+
   );
+
 
 }
 
 
 
 
+
+
+
+// ============================
+// CREATE LISTING
+// ============================
+
 export async function createNewListing(
-  data: CreateListingInput,
-  userId: string
+
+  app:FastifyInstance,
+
+  data:any,
+
+  userId:string
+
 ){
 
-  return createListing({
 
-    title:data.title,
 
-    description:data.description,
+  await checkListingLimit(
 
-    location:data.location,
+    app,
+
+    userId
+
+  );
+
+
+
+
+
+  const subscription =
+
+    await prisma.sellerSubscription.findFirst({
+
+
+      where:{
+
+
+        userId,
+
+        active:true
+
+
+      },
+
+
+      include:{
+
+
+        plan:true
+
+
+      }
+
+
+    });
+
+
+
+
+
+
+
+  const featured =
+
+    subscription?.plan?.featuredListing ?? false;
+
+
+
+
+
+
+
+  return createListingWithFeatured({
+
+
+    ...data,
+
 
     ownerId:userId,
 
-    price:data.price,
 
-    negotiable:data.negotiable,
+    featured
 
-    type:data.type,
-
-    categoryId:data.categoryId,
 
   });
 
+
+
 }
 
 
 
+
+
+
+
+
+
+// ============================
+// GET ALL LISTINGS
+// ============================
 
 export async function fetchListings(){
 
+
   return getListings();
 
+
 }
 
 
 
+
+
+
+
+
+
+// ============================
+// SEARCH LISTINGS
+// ============================
+
+export async function fetchSearchListings(
+
+  filters:any
+
+){
+
+
+  return searchListings(
+
+    filters
+
+  );
+
+
+}
+
+
+
+
+
+
+
+
+
+// ============================
+// GET SINGLE LISTING
+// ============================
 
 export async function fetchListingById(
+
   id:string
+
 ){
 
-  return getListingById(id);
+
+  return getListingById(
+
+    id
+
+  );
+
 
 }
 
@@ -79,107 +223,118 @@ export async function fetchListingById(
 
 
 
-export async function updateListing(
-    id:string,
-    ownerId:string,
-    data:{
-        title?:string;
-        description?:string;
-        price?:number;
-        negotiable?:boolean;
-        location?:string;
-        type?:any;
-        categoryId?:string;
-    }
+
+
+
+
+// ============================
+// GET MY LISTINGS
+// ============================
+
+export async function fetchMyListings(
+
+  userId:string
+
 ){
 
 
-    const listing =
-        await prisma.listing.findUnique({
+  return getMyListings(
 
-            where:{
-                id
-            }
+    userId
 
-        });
+  );
 
 
-
-    if(!listing){
-
-        throw new Error(
-            "Listing not found"
-        );
-
-    }
+}
 
 
 
-    if(listing.ownerId !== ownerId){
-
-        throw new Error(
-            "You are not allowed to edit this listing"
-        );
-
-    }
 
 
 
-    return prisma.listing.update({
-
-        where:{
-            id
-        },
 
 
-        data:{
+
+// ============================
+// UPDATE LISTING
+// ============================
+
+export async function editListing(
+
+  id:string,
+
+  ownerId:string,
+
+  data:{
 
 
-            ...(data.title && {
-                title:data.title
-            }),
+    title?:string;
 
 
-            ...(data.description && {
-                description:data.description
-            }),
+    description?:string;
 
 
-            ...(data.price !== undefined && {
-                price:data.price
-            }),
+    price?:number;
 
 
-            ...(data.negotiable !== undefined && {
-                negotiable:data.negotiable
-            }),
+    negotiable?:boolean;
 
 
-            ...(data.location && {
-                location:data.location
-            }),
+    location?:string;
 
 
-            ...(data.type && {
-                type:data.type
-            }),
+    type?:string;
 
 
-            ...(data.categoryId && {
-                categoryId:data.categoryId
-            }),
-
-        },
+    categoryId?:string;
 
 
-        include:{
+  }
 
-            images:true,
+){
 
-            category:true,
 
-        }
+  return updateListingRepository(
 
-    });
+    id,
+
+    ownerId,
+
+    data
+
+  );
+
+
+}
+
+
+
+
+
+
+
+
+
+// ============================
+// DELETE LISTING
+// ============================
+
+export async function removeListing(
+
+  id:string,
+
+  ownerId:string
+
+){
+
+
+  return deleteListing(
+
+    id,
+
+    ownerId
+
+  );
+
 
 }

@@ -1,18 +1,21 @@
 import type { FastifyInstance } from "fastify";
 
-
 import {
-    registerUser,
-    loginUser
-} from "./auth.service.js";
+    hashPassword,
+    comparePassword
+} from "../../utils/password.js";
 
+import { prisma } from "../../lib/prisma.js";
 
 
 export default async function authRoutes(
-    app:FastifyInstance
+    app: FastifyInstance
 ){
 
 
+    // ============================
+    // REGISTER
+    // ============================
 
     app.post(
         "/register",
@@ -22,40 +25,140 @@ export default async function authRoutes(
         )=>{
 
 
-            try{
+            const body = request.body as {
+
+                name:string;
+
+                email:string;
+
+                password:string;
+
+                phone?:string;
+
+            };
 
 
-                const user =
-                    await registerUser(
-                        app,
-                        request.body
-                    );
 
+            const existingUser =
+                await prisma.user.findUnique({
 
-
-                return reply.send(user);
-
-
-
-            }catch(error:any){
-
-
-                return reply.status(400).send({
-
-                    message:error.message
+                    where:{
+                        email:body.email
+                    }
 
                 });
 
 
+
+            if(existingUser){
+
+                return reply.code(400).send({
+
+                    success:false,
+
+                    message:
+                    "Email already registered"
+
+                });
+
             }
 
 
+
+
+
+            const hashedPassword =
+                await hashPassword(
+                    body.password
+                );
+
+
+
+
+            const user =
+                await prisma.user.create({
+
+                    data:{
+
+
+                        name:
+                        body.name,
+
+
+                        email:
+                        body.email,
+
+
+                        password:
+                        hashedPassword,
+
+
+                        phone:
+                        body.phone
+
+
+                    }
+
+                });
+
+
+
+
+
+
+            const token =
+                app.jwt.sign({
+
+                    id:user.id,
+
+                    role:user.role
+
+                });
+
+
+
+
+
+
+            return {
+
+                success:true,
+
+                token,
+
+
+                user:{
+
+
+                    id:user.id,
+
+                    name:user.name,
+
+                    email:user.email,
+
+                    role:user.role
+
+
+                }
+
+            };
+
+
         }
+
     );
 
 
 
 
+
+
+
+
+
+    // ============================
+    // LOGIN
+    // ============================
 
 
     app.post(
@@ -66,45 +169,123 @@ export default async function authRoutes(
         )=>{
 
 
-            try{
+            const body =
+            request.body as {
 
+                email:string;
 
-                const body:any =
-                    request.body;
+                password:string;
 
-
-
-                const result =
-                    await loginUser(
-
-                        app,
-
-                        body.email,
-
-                        body.password
-
-                    );
+            };
 
 
 
-                return reply.send(result);
 
 
+            const user =
+                await prisma.user.findUnique({
 
-            }catch(error:any){
-
-
-                return reply.status(400).send({
-
-                    message:error.message
+                    where:{
+                        email:body.email
+                    }
 
                 });
 
 
+
+
+
+            if(!user){
+
+                return reply.code(401).send({
+
+                    success:false,
+
+                    message:
+                    "Invalid email or password"
+
+                });
+
             }
 
 
+
+
+
+
+            const valid =
+                await comparePassword(
+
+                    body.password,
+
+                    user.password
+
+                );
+
+
+
+
+
+            if(!valid){
+
+                return reply.code(401).send({
+
+                    success:false,
+
+                    message:
+                    "Invalid email or password"
+
+                });
+
+            }
+
+
+
+
+
+
+
+            const token =
+                app.jwt.sign({
+
+                    id:user.id,
+
+                    role:user.role
+
+                });
+
+
+
+
+
+
+
+            return {
+
+                success:true,
+
+                token,
+
+
+                user:{
+
+
+                    id:user.id,
+
+                    name:user.name,
+
+                    email:user.email,
+
+                    role:user.role
+
+
+                }
+
+            };
+
+
         }
+
     );
 
 

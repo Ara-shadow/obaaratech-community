@@ -1,20 +1,16 @@
-import type {
-  FastifyInstance,
-} from "fastify";
-
+import type { FastifyInstance } from "fastify";
 
 import {
   createCategoryController,
   getCategoriesController,
   getCategoryController,
+  getCategoryTreeController
 } from "./category.controller.js";
 
 
-
 export default async function categoryRoutes(
-  app:FastifyInstance
+  app: FastifyInstance
 ){
-
 
   app.post(
     "/",
@@ -29,9 +25,14 @@ export default async function categoryRoutes(
 
 
   app.get(
+    "/tree",
+    getCategoryTreeController
+  );
+
+
+  app.get(
     "/:id",
     getCategoryController
   );
-
 
 }

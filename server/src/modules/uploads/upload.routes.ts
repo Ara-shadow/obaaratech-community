@@ -1,22 +1,63 @@
-import type { FastifyInstance } from "fastify";
+import type {
+    FastifyInstance
+} from "fastify";
+
 
 import {
-  uploadImageController,
+    uploadImageController,
+    deleteImageController
 } from "./upload.controller.js";
 
 
+
+
 export default async function uploadRoutes(
-  app: FastifyInstance
+    app:FastifyInstance
 ){
 
-  app.post(
-    "/listing/:listingId",
-    {
-      onRequest:[
-        app.authenticate,
-      ],
-    },
-    uploadImageController
-  );
+
+
+
+    app.post(
+
+        "/listing/:listingId",
+
+        {
+
+            preHandler:[
+
+                app.authenticate
+
+            ]
+
+        },
+
+        uploadImageController
+
+    );
+
+
+
+
+
+    app.delete(
+
+        "/image/:imageId",
+
+        {
+
+            preHandler:[
+
+                app.authenticate
+
+            ]
+
+        },
+
+        deleteImageController
+
+    );
+
+
 
 }

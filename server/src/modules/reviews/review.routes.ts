@@ -1,48 +1,65 @@
 import type { FastifyInstance } from "fastify";
 
+
 import {
+
   createReviewController,
-  getReviewsController,
-  deleteReviewController,
+
+  getListingReviewsController
+
 } from "./review.controller.js";
 
 
+
+
+
 export default async function reviewRoutes(
+
   app: FastifyInstance
+
 ){
 
 
-  // Add review to listing
+
+  // ==============================
+  // CREATE REVIEW
+  // ==============================
+
   app.post(
+
     "/:listingId",
+
     {
+
       onRequest:[
-        app.authenticate,
-      ],
+
+        app.authenticate
+
+      ]
+
     },
+
     createReviewController
+
   );
 
 
 
-  // Get listing reviews
+
+
+
+  // ==============================
+  // GET LISTING REVIEWS
+  // ==============================
+
   app.get(
-    "/:listingId",
-    getReviewsController
+
+    "/listing/:listingId",
+
+    getListingReviewsController
+
   );
 
-
-
-  // Delete review
-  app.delete(
-    "/:id",
-    {
-      onRequest:[
-        app.authenticate,
-      ],
-    },
-    deleteReviewController
-  );
 
 
 }

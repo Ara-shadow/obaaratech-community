@@ -7,214 +7,153 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  SOLD
+  REJECTED
+  EXPIRED
+}
+
+enum ListingType {
+  PRODUCT
+  SERVICE
+  PROPERTY
+  VEHICLE
+  JOB
+  COURSE
+  EVENT
+  ANNOUNCEMENT
+}
+
+enum UserRole {
   USER
-  ADMIN
   SELLER
+  ADMIN
 }
 
 model User {
-  id String @id @default(uuid())
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  password       String
+  phone          String?
+  avatar         String?
+  verifiedSeller Boolean  @default(false)
+  role           UserRole @default(USER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  name String
-
-  email String @unique
-
-  password String
-
-  phone String?
-
-  whatsapp String?
-
-  role Role @default(USER)
-
-  posts Post[]
-
-  listings Listing[]
-
-  favourites Favourite[]
-
-  reviews Review[] @relation("UserReviews")
-
-  buyerConversations Conversation[] @relation("BuyerConversations")
-
-  sellerConversations Conversation[] @relation("SellerConversations")
-
-  messages Message[]
-
-  profile Profile?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
+  listings           Listing[]
+  favourites         Favourite[]
+  reviews            Review[]
+  sellerSubscription SellerSubscription?
 }
 
-model Post {
-  id String @id @default(uuid())
+model SellerPlan {
+  id              String  @id @default(uuid())
+  name            String  @unique
+  price           Int     @default(0)
+  duration        Int
+  maxListings     Int     @default(5)
+  imageLimit      Int     @default(3)
+  featuredListing Boolean @default(false)
+  prioritySearch  Boolean @default(false)
+  verifiedBadge   Boolean @default(false)
 
-  title String
+  subscriptions SellerSubscription[]
+  createdAt     DateTime             @default(now())
+}
 
-  content String
+model SellerSubscription {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  planId     String
+  startDate  DateTime @default(now())
+  expiryDate DateTime
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  authorId String
-
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SellerPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
 
 model Category {
   id String @id @default(uuid())
 
-  name String @unique
+  name String
 
-  listings Listing[]
+  slug String @unique
+
+  icon String?
+
+  parentId String?
+
+  parent Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+
+  children Category[] @relation("CategoryHierarchy")
 
   createdAt DateTime @default(now())
+
+  listings Listing[]
 }
 
 model Listing {
-  id String @id @default(uuid())
-
-  title String
-
+  id          String        @id @default(uuid())
+  title       String
   description String
+  price       Int?
+  location    String?
+  condition   String?
+  type        ListingType   @default(PRODUCT)
+  negotiable  Boolean       @default(true)
+  available   Boolean       @default(true)
+  status      ListingStatus @default(ACTIVE)
+  featured    Boolean       @default(false)
+  ownerId     String
+  categoryId  String?
 
-  price Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  negotiable Boolean @default(true)
-
-  type String @default("PRODUCT")
-
-  location String
-
-  ownerId String
-
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-
-  categoryId String?
-
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
-  images Image[]
-
+  images     ListingImage[]
   favourites Favourite[]
-
-  reviews Review[]
-
-  conversations Conversation[]
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
+  reviews    Review[]
 }
 
-model Profile {
-  id String @id @default(uuid())
-
-  userId String @unique
-
-  bio String?
-
-  avatar String?
-
-  location String?
-
-  website String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-}
-
-model Image {
-  id String @id @default(uuid())
-
-  url String
-
-  position Int @default(0)
-
+model ListingImage {
+  id        String @id @default(uuid())
+  url       String
   listingId String
 
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
 }
 
 model Favourite {
-  id String @id @default(uuid())
-
-  userId String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(uuid())
+  userId    String
   listingId String
-
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
   createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingId])
 }
 
 model Review {
-  id String @id @default(uuid())
-
-  rating Int
-
-  comment String?
-
-  userId String
-
-  user User @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
-
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  userId    String
   listingId String
+  createdAt DateTime @default(now())
 
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-}
-
-model Conversation {
-  id String @id @default(uuid())
-
-  buyerId String
-
-  buyer User @relation("BuyerConversations", fields: [buyerId], references: [id], onDelete: Cascade)
-
-  sellerId String
-
-  seller User @relation("SellerConversations", fields: [sellerId], references: [id], onDelete: Cascade)
-
-  listingId String?
-
-  listing Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
-
-  messages Message[]
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  @@unique([buyerId, sellerId, listingId])
-}
-
-model Message {
-  id String @id @default(uuid())
-
-  conversationId String
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  senderId String
-
-  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  content String
-
-  read Boolean @default(false)
-
-  createdAt DateTime @default(now())
 }

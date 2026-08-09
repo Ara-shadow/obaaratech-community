@@ -1,43 +1,123 @@
 import { prisma } from "../../database/prisma.js";
 
 
+// CREATE CATEGORY
+
 export async function createCategory(
-  name:string
-) {
+  name:string,
+  parentId?:string
+){
 
   return prisma.category.create({
+
     data:{
+
       name,
-    },
+
+      parentId
+
+    }
+
   });
 
 }
 
 
+
+
+// GET ALL CATEGORIES
 
 export async function getCategories(){
 
   return prisma.category.findMany({
+
     orderBy:{
-      createdAt:"desc",
-    },
+
+      createdAt:"desc"
+
+    }
+
   });
 
 }
 
 
+
+
+
+// GET CATEGORY BY ID
 
 export async function getCategoryById(
   id:string
 ){
 
   return prisma.category.findUnique({
+
     where:{
-      id,
+
+      id
+
     },
+
     include:{
-      listings:true,
+
+      children:true,
+
+      parent:true,
+
+      listings:true
+
+    }
+
+  });
+
+}
+
+
+
+
+
+
+// GET JUMIA STYLE CATEGORY TREE
+
+export async function getCategoryTree(){
+
+  return prisma.category.findMany({
+
+    where:{
+
+      parentId:null
+
     },
+
+
+    include:{
+
+
+      children:{
+
+
+        include:{
+
+
+          children:true
+
+
+        }
+
+
+      }
+
+
+    },
+
+
+    orderBy:{
+
+      name:"asc"
+
+    }
+
   });
 
 }

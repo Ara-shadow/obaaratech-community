@@ -1,6 +1,6 @@
 import type {
   FastifyReply,
-  FastifyRequest,
+  FastifyRequest
 } from "fastify";
 
 
@@ -8,65 +8,38 @@ import {
   createNewCategory,
   fetchCategories,
   fetchCategoryById,
+  fetchCategoryTree
 } from "./category.service.js";
 
 
 
+
 // CREATE CATEGORY
+
 export async function createCategoryController(
   request: FastifyRequest,
   reply: FastifyReply
 ){
 
-  try {
-
-    const body = request.body as {
+  const body =
+    request.body as {
       name:string;
     };
 
 
-    const category =
-      await createNewCategory(
-        body.name
-      );
+  const category =
+    await createNewCategory(
+      body.name
+    );
 
 
-    return reply.code(201).send({
+  return reply.code(201).send({
 
-      success:true,
+    success:true,
 
-      message:"Category created",
+    category
 
-      category,
-
-    });
-
-
-  } catch(error:any){
-
-
-    if(error.code === "P2002"){
-
-      return reply.code(400).send({
-
-        success:false,
-
-        message:"Category already exists",
-
-      });
-
-    }
-
-
-    return reply.code(500).send({
-
-      success:false,
-
-      message:error.message,
-
-    });
-
-  }
+  });
 
 }
 
@@ -74,9 +47,10 @@ export async function createCategoryController(
 
 
 // GET ALL CATEGORIES
+
 export async function getCategoriesController(
-  request: FastifyRequest,
-  reply: FastifyReply
+  request:FastifyRequest,
+  reply:FastifyReply
 ){
 
   const categories =
@@ -87,7 +61,7 @@ export async function getCategoriesController(
 
     success:true,
 
-    categories,
+    categories
 
   });
 
@@ -96,13 +70,38 @@ export async function getCategoriesController(
 
 
 
-// GET CATEGORY BY ID
-export async function getCategoryController(
-  request: FastifyRequest,
-  reply: FastifyReply
+// GET CATEGORY TREE
+
+export async function getCategoryTreeController(
+  request:FastifyRequest,
+  reply:FastifyReply
 ){
 
-  const { id } =
+  const categories =
+    await fetchCategoryTree();
+
+
+  return reply.send({
+
+    success:true,
+
+    categories
+
+  });
+
+}
+
+
+
+
+// GET SINGLE CATEGORY
+
+export async function getCategoryController(
+  request:FastifyRequest,
+  reply:FastifyReply
+){
+
+  const {id} =
     request.params as {
       id:string;
     };
@@ -119,7 +118,7 @@ export async function getCategoryController(
 
       success:false,
 
-      message:"Category not found",
+      message:"Category not found"
 
     });
 
@@ -131,7 +130,7 @@ export async function getCategoryController(
 
     success:true,
 
-    category,
+    category
 
   });
 

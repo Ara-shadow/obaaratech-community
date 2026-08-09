@@ -1,8 +1,13 @@
 import {
+
   createCategory,
   getCategories,
   getCategoryById,
+  getCategoryTree
+
 } from "./category.repository.js";
+
+
 
 
 
@@ -16,6 +21,7 @@ export async function createNewCategory(
 
 
 
+
 export async function fetchCategories(){
 
   return getCategories();
@@ -24,10 +30,21 @@ export async function fetchCategories(){
 
 
 
+
 export async function fetchCategoryById(
   id:string
 ){
 
   return getCategoryById(id);
+
+}
+
+
+
+
+
+export async function fetchCategoryTree(){
+
+  return getCategoryTree();
 
 }
