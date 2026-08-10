@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Builds
+dist/
+build/
+.next/
+
+# Logs
+*.log
+
+# Uploads
+uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary AI/editor folders
+.agents/
+.claude/
+.windsurf/
+
+# Testing tools
+.postman/
+.fetch-client/
+
+# Prisma generated
+node_modules/.prisma/

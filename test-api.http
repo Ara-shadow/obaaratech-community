@@ -1,0 +1,44 @@
+app.decorate(
+    "authenticate",
+    async function(
+        request,
+        reply
+    ){
+
+        console.log(
+            "AUTH HEADER:",
+            request.headers.authorization
+        );
+
+
+        try {
+
+            await request.jwtVerify();
+
+
+            console.log(
+                "JWT SUCCESS:",
+                request.user
+            );
+
+
+        } catch(error:any){
+
+            console.log(
+                "JWT ERROR:",
+                error.message
+            );
+
+
+            return reply.code(401).send({
+
+                success:false,
+
+                message:"Unauthorized",
+
+            });
+
+        }
+
+    }
+);
