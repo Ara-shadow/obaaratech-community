@@ -540,6 +540,11 @@ export async function createListingWithFeatured(
     description:string;
     price:number;
     location:string;
+    condition?:string;
+    type?:string;
+    negotiable?:boolean;
+    available?:boolean;
+    status?:string;
     ownerId:string;
     categoryId?:string;
     featured:boolean;
@@ -558,6 +563,16 @@ export async function createListingWithFeatured(
         price:data.price,
 
         location:data.location,
+
+        condition:data.condition,
+
+        type:data.type ?? "PRODUCT",
+
+        negotiable:data.negotiable ?? true,
+
+        available:data.available ?? true,
+
+        status:data.status ?? "ACTIVE",
 
         ownerId:data.ownerId,
 

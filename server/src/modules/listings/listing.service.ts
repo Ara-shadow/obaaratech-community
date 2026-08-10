@@ -67,15 +67,33 @@ export async function createNewListing(
 
 
 
-    return createListingWithFeatured({
+ return createListingWithFeatured({
 
-        ...data,
+        title:data.title,
+
+        description:data.description,
+
+        price:Number(data.price),
+
+        location:data.location,
+
+        condition:data.condition,
+
+        type:data.type,
+
+        negotiable:data.negotiable,
+
+        available:data.available,
+
+        status:data.status,
+
+        categoryId:data.categoryId,
 
         ownerId:userId,
 
         featured
 
-    });
+});
 
 
 }

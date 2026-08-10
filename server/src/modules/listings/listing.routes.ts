@@ -22,14 +22,6 @@ import {
 } from "./listing.controller.js";
 
 
-import {
-
-  addListingImageController,
-
-  deleteListingImageController
-
-} from "./listing.image.controller.js";
-
 
 
 
@@ -103,62 +95,6 @@ app.post(
     },
 
     getMyListingsController
-
-  );
-
-
-
-
-
-
-
-  // ==========================
-  // ADD IMAGE TO LISTING
-  // ==========================
-
-  app.post(
-
-    "/:id/images",
-
-    {
-
-      preHandler:[
-
-        app.authenticate
-
-      ]
-
-    },
-
-    addListingImageController
-
-  );
-
-
-
-
-
-
-
-  // ==========================
-  // DELETE LISTING IMAGE
-  // ==========================
-
-  app.delete(
-
-    "/:id/images/:imageId",
-
-    {
-
-      preHandler:[
-
-        app.authenticate
-
-      ]
-
-    },
-
-    deleteListingImageController
 
   );
 
