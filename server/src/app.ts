@@ -28,7 +28,9 @@ import commentsRoutes from "./modules/comments/comments.routes.js";
 import likesRoutes from "./modules/likes/likes.routes.js";
 
 import notificationsRoutes from "./modules/notifications/notifications.routes.js";
-
+import {
+    listingImageRoutes
+} from "./modules/listings/listing.image.routes.js";
 
 
 import listingRoutes from "./modules/listings/listing.routes.js";
@@ -129,10 +131,14 @@ cors,
 
 
 await app.register(
-multipart
+multipart,
+{
+    limits:{
+        fileSize:
+        10 * 1024 * 1024
+    }
+}
 );
-
-
 
 
 
@@ -281,7 +287,12 @@ listingRoutes,
 
 );
 
-
+await app.register(
+listingImageRoutes,
+{
+    prefix:"/api/listings"
+}
+);
 
 
 

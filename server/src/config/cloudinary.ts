@@ -15,44 +15,61 @@ cloudinary.config({
 });
 
 
-export default cloudinary;
 
-
-
-export function uploadToCloudinary(
+export async function uploadToCloudinary(
     buffer: Buffer
 ){
 
-    return new Promise<any>((resolve,reject)=>{
+    return new Promise<any>(
+
+        (resolve,reject)=>{
 
 
-        const stream =
-        cloudinary.uploader.upload_stream(
+            const stream =
+            cloudinary.uploader.upload_stream(
 
-            {
-                folder:"obaaratech-marketplace"
-            },
+             {
+    folder:"obaaratech-marketplace",
 
-            (error,result)=>{
+    transformation:[
+        {
+            width:1200,
+            crop:"limit",
+            quality:"auto",
+            fetch_format:"auto"
+        }
+    ]
+}
 
-                if(error){
 
-                    reject(error);
+                (error,result)=>{
 
-                }
-                else{
+
+                    if(error){
+
+                        reject(error);
+
+                        return;
+
+                    }
+
 
                     resolve(result);
 
                 }
 
-            }
-
-        );
+            );
 
 
-        stream.end(buffer);
+            stream.end(buffer);
 
-    });
+
+        }
+
+    );
 
 }
+
+
+
+export default cloudinary;

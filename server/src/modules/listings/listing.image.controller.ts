@@ -3,152 +3,326 @@ import type {
     FastifyRequest
 } from "fastify";
 
+
 import { prisma } from "../../lib/prisma.js";
+
+
 import {
-    uploadToCloudinary
-} from "../../config/cloudinary.js";
+    uploadImage
+} from "./listing.image.service.js";
+
+
 import {
     checkImageLimit
 } from "../sellers/seller.access.service.js";
-import { createNewListing } from "./listing.service.js";
 
-// ===============================
-// CREATE LISTING
-// ===============================
 
-export async function createListingController(
-    request: FastifyRequest,
-    reply: FastifyReply
-) {
-    const user = request.user as { id: string };
 
-    const listing = await createNewListing(
-        request.server,
-        request.body,
-        user.id
-    );
-
-    return reply.send({
-        success: true,
-        listing
-    });
-}
 
 // ===============================
 // ADD LISTING IMAGE
 // ===============================
 
 export async function addListingImageController(
+
     request: FastifyRequest,
+
     reply: FastifyReply
-) {
-    const user = request.user as { id: string };
-    const params = request.params as { id: string };
 
-    const listing = await prisma.listing.findUnique({
-        where: {
-            id: params.id
+){
+
+    try {
+
+
+        const user =
+            request.user as {
+                id:string;
+            };
+
+
+        const params =
+            request.params as {
+                id:string;
+            };
+
+
+
+        const listing =
+            await prisma.listing.findUnique({
+
+                where:{
+                    id:params.id
+                }
+
+            });
+
+
+
+        if(!listing){
+
+            return reply.code(404).send({
+
+                success:false,
+
+                message:"Listing not found"
+
+            });
+
         }
-    });
 
-    if (!listing) {
-        return reply.code(404).send({
-            message: "Listing not found"
-        });
-    }
 
-    if (listing.ownerId !== user.id) {
-        return reply.code(403).send({
-            message: "Not allowed"
-        });
-    }
 
-    // CHECK SELLER IMAGE LIMIT
-    await checkImageLimit(
-        request.server,
-        user.id,
-        params.id
-    );
+        if(listing.ownerId !== user.id){
 
-    const file = await request.file();
+            return reply.code(403).send({
 
-    if (!file) {
-        return reply.code(400).send({
-            message: "No image uploaded"
-        });
-    }
+                success:false,
 
-    const buffer = await file.toBuffer();
-    const uploaded = await uploadToCloudinary(buffer);
+                message:"Not allowed"
 
-    const image = await prisma.listingImage.create({
-        data: {
-            url: uploaded.secure_url,
-            listingId: params.id
+            });
+
         }
+
+
+
+        await checkImageLimit(
+
+            user.id,
+
+            params.id
+
+        );
+
+
+
+
+       const file = await request.file();
+
+
+if(!file){
+
+    return reply.code(400).send({
+
+        success:false,
+
+        message:"No image uploaded"
+
     });
 
-    return reply.send({
-        success: true,
-        image
-    });
 }
+
+
+
+if(!file.mimetype.startsWith("image/")){
+
+    return reply.code(400).send({
+
+        success:false,
+
+        message:"Only image files allowed"
+
+    });
+
+}
+
+
+
+
+        const buffer =
+            await file.toBuffer();
+
+
+
+        const uploaded =
+            await uploadImage(
+
+                buffer
+
+            );
+
+
+
+        const image =
+            await prisma.listingImage.create({
+
+                data:{
+
+                    listingId:params.id,
+
+                    url:uploaded.secure_url
+
+                }
+
+            });
+
+
+
+        return reply.send({
+
+            success:true,
+
+            image
+
+        });
+
+
+
+    }catch(error:any){
+
+
+        return reply.code(400).send({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
+}
+
+
+
+
+
+
 
 // ===============================
 // DELETE IMAGE
 // ===============================
 
 export async function deleteListingImageController(
-    request: FastifyRequest,
-    reply: FastifyReply
-) {
-    const user = request.user as { id: string };
-    const params = request.params as { id: string; imageId: string };
 
-    const listing = await prisma.listing.findUnique({
-        where: {
-            id: params.id
+    request:FastifyRequest,
+
+    reply:FastifyReply
+
+){
+
+    try{
+
+
+        const user =
+            request.user as {
+                id:string;
+            };
+
+
+
+        const params =
+            request.params as {
+
+                id:string;
+
+                imageId:string;
+
+            };
+
+
+
+
+        const listing =
+            await prisma.listing.findUnique({
+
+                where:{
+                    id:params.id
+                }
+
+            });
+
+
+
+        if(!listing){
+
+            return reply.code(404).send({
+
+                success:false,
+
+                message:"Listing not found"
+
+            });
+
         }
-    });
 
-    if (!listing) {
-        return reply.code(404).send({
-            message: "Listing not found"
-        });
-    }
 
-    if (listing.ownerId !== user.id) {
-        return reply.code(403).send({
-            message: "Not allowed"
-        });
-    }
 
-    const image = await prisma.listingImage.findUnique({
-        where: {
-            id: params.imageId
+        if(listing.ownerId !== user.id){
+
+            return reply.code(403).send({
+
+                success:false,
+
+                message:"Not allowed"
+
+            });
+
         }
-    });
 
-    if (!image) {
-        return reply.code(404).send({
-            message: "Image not found"
-        });
-    }
 
-    if (image.listingId !== params.id) {
-        return reply.code(403).send({
-            message: "Image does not belong to this listing"
-        });
-    }
 
-    await prisma.listingImage.delete({
-        where: {
-            id: params.imageId
+
+        const image =
+            await prisma.listingImage.findUnique({
+
+                where:{
+                    id:params.imageId
+                }
+
+            });
+
+
+
+        if(!image){
+
+            return reply.code(404).send({
+
+                success:false,
+
+                message:"Image not found"
+
+            });
+
         }
-    });
 
-    return reply.send({
-        success: true,
-        message: "Image deleted"
-    });
+
+
+
+        await prisma.listingImage.delete({
+
+            where:{
+                id:params.imageId
+            }
+
+        });
+
+
+
+        return reply.send({
+
+            success:true,
+
+            message:"Image deleted"
+
+        });
+
+
+
+    }catch(error:any){
+
+
+        return reply.code(400).send({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
+
+
 }
