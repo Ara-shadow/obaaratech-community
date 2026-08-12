@@ -1,19 +1,20 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-
 import {
     findImageById,
     deleteImage
 } from "./upload.repository.js";
 
 
-
+// =====================================
+// REMOVE LISTING IMAGE
+// =====================================
 
 export async function removeListingImage(
-    imageId:string,
-    userId:string
-){
+    imageId: string,
+    userId: string
+) {
 
     const image =
         await findImageById(
@@ -21,8 +22,8 @@ export async function removeListingImage(
         );
 
 
-
-    if(!image){
+    // Image does not exist
+    if (!image) {
 
         throw new Error(
             "Image not found"
@@ -31,8 +32,20 @@ export async function removeListingImage(
     }
 
 
+    // Image is not attached to a listing
+    if (!image.listing) {
 
-    if(image.listing.ownerId !== userId){
+        throw new Error(
+            "Image is not attached to a listing"
+        );
+
+    }
+
+
+    // Only the listing owner can delete the image
+    if (
+        image.listing.ownerId !== userId
+    ) {
 
         throw new Error(
             "You are not allowed to delete this image"
@@ -41,7 +54,7 @@ export async function removeListingImage(
     }
 
 
-
+    // Build the physical file path
     const filePath =
         path.join(
             process.cwd(),
@@ -49,14 +62,14 @@ export async function removeListingImage(
         );
 
 
-
-    try{
+    // Remove physical file
+    try {
 
         await fs.unlink(
             filePath
         );
 
-    }catch(error){
+    } catch (error) {
 
         console.log(
             "File already removed"
@@ -65,7 +78,7 @@ export async function removeListingImage(
     }
 
 
-
+    // Remove database record
     return deleteImage(
         imageId
     );

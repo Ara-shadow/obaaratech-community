@@ -1,62 +1,92 @@
 import { prisma } from "../../lib/prisma.js";
 
-export async function createListing(data:{
-    title:string;
-    description:string;
-    price:number;
-    location:string;
-    ownerId:string;
-    categoryId?:string;
+import {
+  ListingStatus,
+  ListingType
+} from "@prisma/client";
+
+
+// =====================================================
+// CREATE LISTING
+// =====================================================
+
+export async function createListing(data: {
+  title: string;
+  description: string;
+  price: number;
+  location: string;
+  ownerId: string;
+  categoryId?: string;
 }) {
 
+  return prisma.listing.create({
 
-    return prisma.listing.create({
+    data: {
 
-        data:{
+      title: data.title,
 
-            title:data.title,
+      description: data.description,
 
-            description:data.description,
+      price: data.price,
 
-            price:data.price,
+      location: data.location,
 
-            location:data.location,
+      ownerId: data.ownerId,
 
-            ownerId:data.ownerId,
+      categoryId: data.categoryId
 
-            categoryId:data.categoryId
+    },
 
-        },
+    include: {
 
-        include:{
+      images: true,
 
-            images:true,
+      category: true
 
-            category:true
+    }
 
-        }
-
-    });
-
+  });
 
 }
 
 
-
+// =====================================================
 // UPDATE STATUS
+// =====================================================
 
 export async function changeListingStatus(
-  id:string,
-  status:string
-){
+  id: string,
+  ownerId: string,
+  status: ListingStatus
+) {
+
+  const listing =
+    await prisma.listing.findFirst({
+
+      where: {
+        id,
+        ownerId
+      }
+
+    });
+
+
+  if (!listing) {
+
+    throw new Error(
+      "Listing not found"
+    );
+
+  }
+
 
   return prisma.listing.update({
 
-    where:{
+    where: {
       id
     },
 
-    data:{
+    data: {
       status
     }
 
@@ -65,188 +95,245 @@ export async function changeListingStatus(
 }
 
 
-
-
+// =====================================================
 // GET ALL LISTINGS
+// =====================================================
 
-export async function getListings(){
+export async function getListings() {
 
   return prisma.listing.findMany({
 
-    include:{
+    where: {
 
-     owner: {
-  select: {
-    id:true,
-    name:true,
-    phone:true
-  }
-},
+      status: "ACTIVE",
 
-      category:true,
-
-      images:true
+      available: true
 
     },
 
-    orderBy:{
-      createdAt:"desc"
-    }
+    include: {
+
+      owner: {
+
+        select: {
+
+          id: true,
+
+          name: true,
+
+          phone: true,
+
+          avatar: true,
+
+          verifiedSeller: true
+
+        }
+
+      },
+
+
+      category: true,
+
+
+      images: {
+
+        orderBy: {
+
+          id: "asc"
+
+        }
+
+      }
+
+    },
+
+
+    orderBy: [
+
+      {
+
+        featured: "desc"
+
+      },
+
+      {
+
+        createdAt: "desc"
+
+      }
+
+    ]
 
   });
 
 }
 
 
-
-
+// =====================================================
 // GET SINGLE LISTING
+// =====================================================
 
 export async function getListingById(
-  id:string
-){
+  id: string
+) {
 
- return prisma.listing.findUnique({
+  return prisma.listing.findUnique({
 
-  where:{
-    id
-  },
+    where: {
 
+      id
 
-  include:{
+    },
 
-    owner:{
-  select:{
-    id:true,
-    name:true,
-    phone:true,
-    email:true
-  }
-},
+    include: {
 
-    category:true,
+      owner: {
 
-    images:true,
+        select: {
 
-    reviews:true
+          id: true,
 
-  }
+          name: true,
 
- });
+          phone: true,
+
+          email: true
+
+        }
+
+      },
 
 
-}
+      category: true,
 
 
+      images: true,
 
 
+      reviews: true
 
-// GET USER LISTINGS
-
-export async function getMyListings(
- ownerId:string
-){
-
- return prisma.listing.findMany({
-
-  where:{
-    ownerId
-  },
-
-
-  include:{
-
-    category:true,
-
-    images:true
-
-  },
-
-
-  orderBy:{
-    createdAt:"desc"
-  }
-
-
- });
-
-
-}
-
-
-
-
-
-
-// UPDATE LISTING
-
-export async function updateListing(
-  id:string,
-  ownerId:string,
-  data:{
-    title?:string;
-    description?:string;
-    price?:number;
-    location?:string;
-    condition?:string;
-    categoryId?:string;
-  }
-){
-
-  const listing = await prisma.listing.findFirst({
-
-    where:{
-      id,
-      ownerId
     }
 
   });
 
+}
 
-  if(!listing){
 
-    throw new Error("Listing not found");
+// =====================================================
+// GET USER LISTINGS
+// =====================================================
+
+export async function getMyListings(
+  ownerId: string
+) {
+
+  return prisma.listing.findMany({
+
+    where: {
+
+      ownerId
+
+    },
+
+    include: {
+
+      category: true,
+
+      images: true
+
+    },
+
+    orderBy: {
+
+      createdAt: "desc"
+
+    }
+
+  });
+
+}
+
+
+// =====================================================
+// UPDATE LISTING
+// =====================================================
+
+export async function updateListing(
+  id: string,
+  ownerId: string,
+  data: {
+    title?: string;
+    description?: string;
+    price?: number;
+    location?: string;
+    condition?: string;
+    details?: any;
+    categoryId?: string;
+  }
+)
+{
+
+  const listing =
+    await prisma.listing.findFirst({
+
+      where: {
+
+        id,
+
+        ownerId
+
+      }
+
+    });
+
+
+  if (!listing) {
+
+    throw new Error(
+      "Listing not found"
+    );
 
   }
-
 
 
   return prisma.listing.update({
 
-    where:{
+    where: {
+
       id
+
     },
 
-    data:{
+   data: {
 
-      title:data.title,
+    title: data.title,
 
-      description:data.description,
+    description: data.description,
 
-      price:data.price,
+    price: data.price,
 
-      location:data.location,
+    location: data.location,
 
-      condition:data.condition,
+    condition: data.condition,
 
-      categoryId:data.categoryId
+    details: data.details,
 
-    }
+    categoryId: data.categoryId
+
+}
 
   });
 
 }
 
-// ==============================
+
+// =====================================================
 // SEARCH & FILTER LISTINGS
-// ==============================
+// =====================================================
 
 export async function searchListings(
-
-  filters:any
-
-){
-
+  filters: any
+) {
 
   const {
 
@@ -269,28 +356,35 @@ export async function searchListings(
   } = filters;
 
 
-
-  const where:any = {};
-
+  const where: any = {};
 
 
+  if (q) {
 
-  if(q){
-
-    where.OR=[
+    where.OR = [
 
       {
-        title:{
-          contains:q,
-          mode:"insensitive"
+
+        title: {
+
+          contains: q,
+
+          mode: "insensitive"
+
         }
+
       },
 
       {
-        description:{
-          contains:q,
-          mode:"insensitive"
+
+        description: {
+
+          contains: q,
+
+          mode: "insensitive"
+
         }
+
       }
 
     ];
@@ -298,298 +392,400 @@ export async function searchListings(
   }
 
 
-
-
-
-  if(categoryId){
+  if (categoryId) {
 
     where.categoryId = categoryId;
 
   }
 
 
-
-
-
-  if(location){
+  if (location) {
 
     where.location = {
 
-      contains:location,
+      contains: location,
 
-      mode:"insensitive"
+      mode: "insensitive"
 
     };
 
   }
 
 
+  if (minPrice || maxPrice) {
+
+    where.price = {};
 
 
+    if (minPrice) {
 
-
-  if(minPrice || maxPrice){
-
-    where.price={};
-
-
-    if(minPrice){
-
-      where.price.gte=minPrice;
+      where.price.gte = minPrice;
 
     }
 
 
-    if(maxPrice){
+    if (maxPrice) {
 
-      where.price.lte=maxPrice;
+      where.price.lte = maxPrice;
 
     }
 
   }
 
 
+  let orderBy: any = {
 
-
-
-
-
-  let orderBy:any = {
-
-    createdAt:"desc"
+    createdAt: "desc"
 
   };
 
 
+  if (sort === "oldest") {
 
+    orderBy = {
 
-  if(sort==="oldest"){
+      createdAt: "asc"
 
-    orderBy={
-      createdAt:"asc"
     };
 
   }
 
 
+  if (sort === "low_price") {
 
-  if(sort==="low_price"){
+    orderBy = {
 
-    orderBy={
-      price:"asc"
+      price: "asc"
+
     };
 
   }
 
 
+  if (sort === "high_price") {
 
-  if(sort==="high_price"){
+    orderBy = {
 
-    orderBy={
-      price:"desc"
+      price: "desc"
+
     };
 
   }
 
 
+  const currentPage =
+    Number(page) || 1;
 
 
+  const currentLimit =
+    Number(limit) || 20;
 
 
   const skip =
-
-    (page - 1) * limit;
-
-
+    (currentPage - 1) *
+    currentLimit;
 
 
+  const [
+    listings,
+    total
+  ] = await Promise.all([
+
+    prisma.listing.findMany({
+
+      where,
+
+      include: {
+
+        images: true,
+
+        category: true
+
+      },
+
+      orderBy,
+
+      skip,
+
+      take: currentLimit
+
+    }),
 
 
-  const [listings,total] =
+    prisma.listing.count({
 
-    await Promise.all([
+      where
 
+    })
 
-      prisma.listing.findMany({
-
-        where,
-
-
-        include:{
-
-          images:true,
-
-          category:true
-
-        },
-
-
-        orderBy,
-
-
-        skip,
-
-
-        take:limit
-
-
-      }),
-
-
-
-      prisma.listing.count({
-
-        where
-
-      })
-
-
-    ]);
-
-
-
-
+  ]);
 
 
   return {
 
-
     total,
 
+    page: currentPage,
 
-    page,
-
-
-    limit,
-
+    limit: currentLimit,
 
     totalPages:
-
-      Math.ceil(total / limit),
-
+      Math.ceil(
+        total / currentLimit
+      ),
 
     listings
 
-
   };
 
-
 }
+// =====================================================
+// RELATED LISTINGS
+// =====================================================
 
+export async function getRelatedListings(
+  listingId: string,
+  categoryId?: string | null,
+  type?: ListingType,
+  location?: string | null
+) {
 
+  return prisma.listing.findMany({
 
+    where: {
 
+      id: {
+        not: listingId
+      },
 
-// DELETE LISTING
+      status: "ACTIVE",
 
-export async function deleteListing(
- id:string,
- ownerId:string
-){
+      available: true,
 
- const listing =
- await prisma.listing.findUnique({
+    OR: [
+  ...(categoryId
+    ? [
+        {
+          categoryId
+        }
+      ]
+    : []),
 
-  where:{
-    id
-  }
+  ...(type
+    ? [
+        {
+          type
+        }
+      ]
+    : []),
 
- });
-
-
-
- if(!listing){
-
-  throw new Error(
-    "Listing not found"
-  );
-
- }
-
-
-
- if(listing.ownerId !== ownerId){
-
-  throw new Error(
-    "Not allowed"
-  );
-
- }
-
-
-
- return prisma.listing.delete({
-
-  where:{
-    id
-  }
-
- });
-
-
+  ...(location
+    ? [
+        {
+         location: {
+    contains: location.split(",")[0],
+    mode: "insensitive" as const
 }
-
-// ==============================
-// CREATE LISTING WITH SELLER BENEFITS
-// ==============================
-
-export async function createListingWithFeatured(
-
- data:{
-    title:string;
-    description:string;
-    price:number;
-    location:string;
-    condition?:string;
-    type?:string;
-    negotiable?:boolean;
-    available?:boolean;
-    status?:string;
-    ownerId:string;
-    categoryId?:string;
-    featured:boolean;
- }
-
-){
-
- return prisma.listing.create({
-
-    data:{
-
-        title:data.title,
-
-        description:data.description,
-
-        price:data.price,
-
-        location:data.location,
-
-        condition:data.condition,
-
-        type:data.type ?? "PRODUCT",
-
-        negotiable:data.negotiable ?? true,
-
-        available:data.available ?? true,
-
-        status:data.status ?? "ACTIVE",
-
-        ownerId:data.ownerId,
-
-        categoryId:data.categoryId,
-
-        featured:data.featured
+        }
+      ]
+    : [])
+],
 
     },
 
-    include:{
 
-        images:true,
+    include: {
 
-        category:true
+      images: true,
+
+      category: true,
+
+      owner: {
+
+        select: {
+
+          id: true,
+
+          name: true,
+
+          avatar: true,
+
+          verifiedSeller: true
+
+        }
+
+      }
+
+    },
+
+
+    orderBy: [
+
+      {
+        featured: "desc"
+      },
+
+      {
+        createdAt: "desc"
+      }
+
+    ],
+
+
+    take: 8
+
+  });
+
+}
+// =====================================================
+// DELETE LISTING
+// =====================================================
+
+export async function deleteListing(
+  id: string,
+  ownerId: string
+) {
+
+  const listing =
+    await prisma.listing.findUnique({
+
+      where: {
+
+        id
+
+      }
+
+    });
+
+
+  if (!listing) {
+
+    throw new Error(
+      "Listing not found"
+    );
+
+  }
+
+
+  if (listing.ownerId !== ownerId) {
+
+    throw new Error(
+      "Not allowed"
+    );
+
+  }
+
+
+  return prisma.listing.delete({
+
+    where: {
+
+      id
 
     }
 
- });
+  });
+
+}
+
+
+// =====================================================
+// CREATE LISTING WITH SELLER BENEFITS
+// =====================================================
+
+export async function createListingWithFeatured(
+  data: {
+    title: string;
+
+    description: string;
+
+    price: number;
+
+    location: string;
+
+    condition?: string;
+
+    details?: any;
+
+    type?: ListingType;
+
+    negotiable?: boolean;
+
+    available?: boolean;
+
+    status?: ListingStatus;
+
+    ownerId: string;
+
+    categoryId?: string;
+
+    featured: boolean;
+  }
+)
+{
+
+  return prisma.listing.create({
+
+    data: {
+
+      title: data.title,
+
+      description: data.description,
+
+      price: data.price,
+
+      location: data.location,
+
+      condition: data.condition,
+
+      type:
+        data.type ??
+        "PRODUCT",
+
+      negotiable:
+        data.negotiable ??
+        true,
+
+      available:
+        data.available ??
+        true,
+
+      status:
+        data.status ??
+        "ACTIVE",
+
+      ownerId: data.ownerId,
+
+     categoryId: data.categoryId,
+
+details: data.details,
+
+featured: data.featured
+
+    },
+
+    include: {
+
+      images: true,
+
+      category: true,
+
+      owner: {
+
+        select: {
+
+          id: true,
+
+          name: true,
+
+          verifiedSeller: true
+
+        }
+
+      }
+
+    }
+
+  });
 
 }

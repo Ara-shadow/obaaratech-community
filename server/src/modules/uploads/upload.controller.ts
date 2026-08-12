@@ -6,7 +6,7 @@ import type {
 import path from "node:path";
 import fs from "node:fs/promises";
 
-import { prisma } from "../../database/prisma.js";
+import { prisma } from "../../lib/prisma.js";
 
 import {
     removeListingImage

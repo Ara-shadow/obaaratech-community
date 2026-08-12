@@ -13,7 +13,7 @@ export async function generateWhatsAppLink(
 
     const listing =
 
-        await prisma.listing.findUniquee({
+        await prisma.listing.findUnique({
 
             where:{
                 id:listingId

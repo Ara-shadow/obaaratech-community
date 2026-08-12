@@ -4,23 +4,17 @@ import {
   getMyFavourites
 } from "./favourite.repository.js";
 
-import type { FastifyInstance } from "fastify";
 
-
-
-
-// ============================
+// =====================================================
 // SAVE FAVOURITE
-// ============================
+// =====================================================
 
 export async function saveFavourite(
-  app: FastifyInstance,
-  userId:string,
-  listingId:string
-){
+  userId: string,
+  listingId: string
+) {
 
   return addFavourite(
-    app,
     userId,
     listingId
   );
@@ -28,20 +22,16 @@ export async function saveFavourite(
 }
 
 
-
-
-// ============================
+// =====================================================
 // REMOVE FAVOURITE
-// ============================
+// =====================================================
 
 export async function deleteFavourite(
-  app: FastifyInstance,
-  userId:string,
-  listingId:string
-){
+  userId: string,
+  listingId: string
+) {
 
   return removeFavourite(
-    app,
     userId,
     listingId
   );
@@ -49,19 +39,15 @@ export async function deleteFavourite(
 }
 
 
-
-
-// ============================
+// =====================================================
 // GET USER FAVOURITES
-// ============================
+// =====================================================
 
 export async function fetchUserFavourites(
-  app: FastifyInstance,
-  userId:string
-){
+  userId: string
+) {
 
   return getMyFavourites(
-    app,
     userId
   );
 

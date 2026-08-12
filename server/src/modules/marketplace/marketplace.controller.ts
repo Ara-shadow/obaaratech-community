@@ -4,6 +4,7 @@ import type {
 } from "fastify";
 
 import { prisma } from "../../lib/prisma.js";
+import { ListingType } from "@prisma/client";
 
 
 import {
@@ -28,16 +29,11 @@ export async function marketplaceListingsController(
 ){
 
     const query = request.query as {
-
-        categoryId?: string;
-
-        category?: string;
-
-        location?: string;
-
-        type?: string;
-
-    };
+    categoryId?: string;
+    category?: string;
+    location?: string;
+    type?: ListingType;
+};
 
 
   const listings =

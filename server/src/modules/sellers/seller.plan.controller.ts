@@ -18,56 +18,44 @@ import {
 // =================================
 
 export async function sellerListingsController(
-
-    request:FastifyRequest,
-
-    reply:FastifyReply
-
+    request: FastifyRequest,
+    reply: FastifyReply
 ){
 
-try{
+    try {
+
+        const user =
+            request.user as {
+                id:string;
+            };
 
 
-    const user =
-        request.user as {
-            id:string;
-        };
+        const listings =
+            await getSellerListings(
+                user.id
+            );
 
 
-    const listings =
-        await getSellerListings(
+        return reply.send({
 
-            request.server,
+            success:true,
 
-            user.id
+            listings
 
-        );
-
-
-    return reply.send({
-
-        success:true,
-
-        listings
-
-    });
+        });
 
 
-}
-catch(error:any){
+    } catch(error:any){
 
+        return reply.code(400).send({
 
-    return reply.code(400).send({
+            success:false,
 
-        success:false,
+            message:error.message
 
-        message:error.message
+        });
 
-    });
-
-
-}
-
+    }
 
 }
 
@@ -80,66 +68,57 @@ catch(error:any){
 // =================================
 
 export async function updateSellerListingController(
-
-request:FastifyRequest,
-
-reply:FastifyReply
-
+    request: FastifyRequest,
+    reply: FastifyReply
 ){
 
-try{
+    try {
 
 
-const user =
-request.user as {
-id:string;
-};
+        const user =
+            request.user as {
+                id:string;
+            };
 
 
-const params =
-request.params as {
-id:string;
-};
+        const params =
+            request.params as {
+                id:string;
+            };
 
 
+        const listing =
+            await updateSellerListing(
 
-const listing =
-await updateSellerListing(
+                user.id,
 
-request.server,
+                params.id,
 
-user.id,
+                request.body
 
-params.id,
-
-request.body
-
-);
+            );
 
 
+        return reply.send({
 
-return reply.send({
+            success:true,
 
-success:true,
+            listing
 
-listing
-
-});
+        });
 
 
-}
-catch(error:any){
+    } catch(error:any){
 
-return reply.code(400).send({
+        return reply.code(400).send({
 
-success:false,
+            success:false,
 
-message:error.message
+            message:error.message
 
-});
+        });
 
-}
-
+    }
 
 }
 
@@ -152,65 +131,57 @@ message:error.message
 // =================================
 
 export async function deleteSellerListingController(
-
-request:FastifyRequest,
-
-reply:FastifyReply
-
+    request: FastifyRequest,
+    reply: FastifyReply
 ){
 
-try{
+    try {
 
 
-const user =
-request.user as {
-id:string;
-};
+        const user =
+            request.user as {
+                id:string;
+            };
 
 
-const params =
-request.params as {
-id:string;
-};
+        const params =
+            request.params as {
+                id:string;
+            };
 
 
+        await deleteSellerListing(
 
-await deleteSellerListing(
+            user.id,
 
-request.server,
+            params.id
 
-user.id,
-
-params.id
-
-);
+        );
 
 
+        return reply.send({
 
-return reply.send({
+            success:true,
 
-success:true,
+            message:"Listing deleted"
 
-message:"Listing deleted"
-
-});
+        });
 
 
-}
-catch(error:any){
+    } catch(error:any){
 
-return reply.code(400).send({
+        return reply.code(400).send({
 
-success:false,
+            success:false,
 
-message:error.message
+            message:error.message
 
-});
+        });
+
+    }
 
 }
 
-
-}
 
 
 
@@ -220,63 +191,54 @@ message:error.message
 // =================================
 
 export async function markListingSoldController(
-
-request:FastifyRequest,
-
-reply:FastifyReply
-
+    request: FastifyRequest,
+    reply: FastifyReply
 ){
 
-try{
+    try {
 
 
-const user =
-request.user as {
-id:string;
-};
+        const user =
+            request.user as {
+                id:string;
+            };
 
 
-const params =
-request.params as {
-id:string;
-};
+        const params =
+            request.params as {
+                id:string;
+            };
 
 
+        const listing =
+            await markListingSold(
 
-const listing =
-await markListingSold(
+                user.id,
 
-request.server,
+                params.id
 
-user.id,
-
-params.id
-
-);
+            );
 
 
+        return reply.send({
 
-return reply.send({
+            success:true,
 
-success:true,
+            listing
 
-listing
-
-});
+        });
 
 
-}
-catch(error:any){
+    } catch(error:any){
 
-return reply.code(400).send({
+        return reply.code(400).send({
 
-success:false,
+            success:false,
 
-message:error.message
+            message:error.message
 
-});
+        });
 
-}
-
+    }
 
 }

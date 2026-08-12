@@ -1,3 +1,5 @@
+import { ListingStatus } from "@prisma/client";
+
 import type {
     FastifyReply,
     FastifyRequest
@@ -12,7 +14,8 @@ import {
     editListing,
     removeListing,
     fetchSearchListings,
-    updateListingStatus
+    updateListingStatus,
+    fetchRelatedListings
 
 } from "./listing.service.js";
 
@@ -411,11 +414,11 @@ export async function changeStatusController(
 
 
     const body =
-        request.body as {
+    request.body as {
 
-            status:string;
+        status: ListingStatus;
 
-        };
+    };
 
 
 
@@ -437,6 +440,75 @@ export async function changeStatusController(
         success:true,
 
         listing
+
+    });
+
+
+}
+
+
+
+
+// ===============================
+// RELATED LISTINGS
+// ===============================
+
+export async function getRelatedListingsController(
+
+    request:FastifyRequest,
+
+    reply:FastifyReply
+
+){
+
+    const params =
+        request.params as {
+
+            id:string;
+
+        };
+
+
+    const listing =
+        await fetchListingById(
+            params.id
+        );
+
+
+    if(!listing){
+
+        return reply.code(404).send({
+
+            success:false,
+
+            message:"Listing not found"
+
+        });
+
+    }
+
+
+
+ const listings =
+    await fetchRelatedListings(
+
+        params.id,
+
+        listing.categoryId,
+
+        listing.type,
+
+        listing.location
+
+    );
+
+
+
+    return reply.send({
+
+        success:true,
+
+        listings
 
     });
 

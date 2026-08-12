@@ -1,8 +1,7 @@
 import {
     registerUser,
     loginUser
-} from "./auth.service";
-
+} from "./auth.service.js";
 
 
 export async function register(
@@ -13,6 +12,7 @@ export async function register(
     try {
 
         const result = await registerUser(
+            request.server,
             request.body
         );
 
@@ -29,7 +29,6 @@ export async function register(
 }
 
 
-
 export async function login(
     request: any,
     reply: any
@@ -44,13 +43,13 @@ export async function login(
 
 
         const result = await loginUser(
+            request.server,
             email,
             password
         );
 
 
         return reply.send(result);
-
 
     } catch (error: any) {
 

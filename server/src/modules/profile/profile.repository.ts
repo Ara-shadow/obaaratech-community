@@ -1,7 +1,13 @@
-import prisma from "../../database/prisma";
+import { prisma } from "../../lib/prisma.js";
 
 
-export function getProfile(userId:string){
+// =================================
+// GET PROFILE
+// =================================
+
+export function getProfile(
+    userId: string
+){
 
     return prisma.user.findUnique({
 
@@ -16,9 +22,6 @@ export function getProfile(userId:string){
             email:true,
             phone:true,
             avatar:true,
-            bio:true,
-            location:true,
-            website:true,
             role:true,
             createdAt:true
 
@@ -29,6 +32,10 @@ export function getProfile(userId:string){
 }
 
 
+
+// =================================
+// UPDATE PROFILE
+// =================================
 
 export function updateProfile(
     userId:string,
@@ -50,9 +57,6 @@ export function updateProfile(
             email:true,
             phone:true,
             avatar:true,
-            bio:true,
-            location:true,
-            website:true,
             role:true
 
         }

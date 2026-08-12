@@ -17,7 +17,9 @@ import {
 
   changeStatusController,
 
-  searchListingsController
+  searchListingsController,
+
+  getRelatedListingsController
 
 } from "./listing.controller.js";
 
@@ -203,7 +205,17 @@ app.post(
 
 
 
+// ==========================
+// RELATED LISTINGS
+// ==========================
 
+app.get(
+
+  "/:id/related",
+
+  getRelatedListingsController
+
+);
 
 
   // ==========================

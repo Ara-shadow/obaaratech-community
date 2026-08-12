@@ -1,29 +1,50 @@
 import { prisma } from "../../lib/prisma.js";
 
-
+// =================================
+// CREATE DEFAULT SELLER PLANS
+// =================================
 
 export async function createDefaultPlans(){
 
 
     const plans = [
 
+
         {
             name:"FREE",
             price:0,
-            imageLimit:3
+            duration:30,
+            maxListings:5,
+            imageLimit:3,
+            featuredListing:false,
+            prioritySearch:false,
+            verifiedBadge:false
         },
+
 
         {
             name:"PREMIUM",
             price:5000,
-            imageLimit:6
+            duration:30,
+            maxListings:50,
+            imageLimit:10,
+            featuredListing:true,
+            prioritySearch:true,
+            verifiedBadge:false
         },
 
+
         {
-            name:"PRO",
-            price:10000,
-            imageLimit:15
+            name:"BUSINESS",
+            price:15000,
+            duration:30,
+            maxListings:200,
+            imageLimit:50,
+            featuredListing:true,
+            prioritySearch:true,
+            verifiedBadge:true
         }
+
 
     ];
 
@@ -32,24 +53,19 @@ export async function createDefaultPlans(){
     for(const plan of plans){
 
 
-        await prisma.plan.upsert({
+        await prisma.sellerPlan.upsert({
+
 
             where:{
-                name:plan.name as any
+                name:plan.name
             },
 
 
-            update:{},
+            update:plan,
 
-            create:{
 
-                name:plan.name as any,
+            create:plan
 
-                price:plan.price,
-
-                imageLimit:plan.imageLimit
-
-            }
 
         });
 
@@ -58,29 +74,30 @@ export async function createDefaultPlans(){
 
 
 
-    return prisma.plan.findMany({
-
-        orderBy:{
-            price:"asc"
-        }
-
-    });
-
-
 }
 
 
 
+
+// =================================
+// GET ALL PLANS
+// =================================
 
 
 export async function getPlans(){
 
 
-    return prisma.plan.findMany({
+    return prisma.sellerPlan.findMany({
+
 
         orderBy:{
+
+
             price:"asc"
+
+
         }
+
 
     });
 
@@ -89,6 +106,10 @@ export async function getPlans(){
 
 
 
+
+// =================================
+// GET USER ACTIVE PLAN
+// =================================
 
 
 export async function getUserPlan(
@@ -96,18 +117,38 @@ export async function getUserPlan(
 ){
 
 
-    return prisma.userPlan.findUnique({
+    return prisma.sellerSubscription.findFirst({
+
 
         where:{
-            userId
+
+
+            userId,
+
+
+            active:true,
+
+
+            expiryDate:{
+
+
+                gt:new Date()
+
+
+            }
+
+
         },
 
 
         include:{
 
+
             plan:true
 
+
         }
+
 
     });
 

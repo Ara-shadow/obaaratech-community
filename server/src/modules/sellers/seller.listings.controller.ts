@@ -62,6 +62,7 @@ export async function sellerListingsController(
 
 
 
+
 // =================================
 // UPDATE LISTING
 // =================================
@@ -72,7 +73,6 @@ export async function updateSellerListingController(
 ){
 
     try {
-
 
         const user =
             request.user as {
@@ -88,8 +88,6 @@ export async function updateSellerListingController(
 
         const listing =
             await updateSellerListing(
-
-                request.server,
 
                 user.id,
 
@@ -138,7 +136,6 @@ export async function deleteSellerListingController(
 
     try {
 
-
         const user =
             request.user as {
                 id:string;
@@ -152,8 +149,6 @@ export async function deleteSellerListingController(
 
 
         await deleteSellerListing(
-
-            request.server,
 
             user.id,
 
@@ -200,7 +195,6 @@ export async function markListingSoldController(
 
     try {
 
-
         const user =
             request.user as {
                 id:string;
@@ -215,8 +209,6 @@ export async function markListingSoldController(
 
         const listing =
             await markListingSold(
-
-                request.server,
 
                 user.id,
 

@@ -1,36 +1,37 @@
 import type { FastifyInstance } from "fastify";
 
-import { prisma } from "../../database/prisma.js";
+import { prisma } from "../../lib/prisma.js";
 
 import bcrypt from "bcrypt";
 
 
-
 export async function registerUser(
     app: FastifyInstance,
-    data:any
+    data: {
+        name: string;
+        email: string;
+        phone?: string;
+        password: string;
+    }
 ) {
-
 
     const existingUser =
         await prisma.user.findUnique({
 
-            where:{
-                email:data.email
+            where: {
+                email: data.email
             }
 
         });
 
 
-
-    if(existingUser){
+    if (existingUser) {
 
         throw new Error(
             "Email already registered"
         );
 
     }
-
 
 
     const hashedPassword =
@@ -40,62 +41,59 @@ export async function registerUser(
         );
 
 
-
     const user =
         await prisma.user.create({
 
-            data:{
+            data: {
 
-                name:data.name,
+                name: data.name,
 
-                email:data.email,
+                email: data.email,
 
-                phone:data.phone,
+                phone: data.phone ?? null,
 
-                whatsapp:data.whatsapp,
+                password: hashedPassword,
 
-                password:hashedPassword,
-
-                role:"USER"
+                role: "USER"
 
             }
 
         });
 
 
-
     const token =
         app.jwt.sign({
 
-            id:user.id,
+            id: user.id,
 
-            email:user.email,
+            email: user.email,
 
-            role:user.role
+            role: user.role
 
-        },{
-            expiresIn:"7d"
+        }, {
+            expiresIn: "7d"
         });
-
 
 
     return {
 
-        message:"Registration successful",
+        message: "Registration successful",
 
-        user:{
+        user: {
 
-            id:user.id,
+            id: user.id,
 
-            name:user.name,
+            name: user.name,
 
-            email:user.email,
+            email: user.email,
 
-            phone:user.phone,
+            phone: user.phone,
 
-            whatsapp:user.whatsapp,
+            avatar: user.avatar,
 
-            role:user.role
+            verifiedSeller: user.verifiedSeller,
+
+            role: user.role
 
         },
 
@@ -103,104 +101,88 @@ export async function registerUser(
 
     };
 
-
 }
 
 
-
-
-
 export async function loginUser(
-    app:FastifyInstance,
-    email:string,
-    password:string
-){
-
+    app: FastifyInstance,
+    email: string,
+    password: string
+) {
 
     const user =
         await prisma.user.findUnique({
 
-            where:{
+            where: {
                 email
             }
 
         });
 
 
-
-    if(!user){
+    if (!user) {
 
         throw new Error(
             "Invalid email or password"
         );
 
     }
-
-
 
 
     const validPassword =
         await bcrypt.compare(
-
             password,
-
             user.password
-
         );
 
 
-
-    if(!validPassword){
+    if (!validPassword) {
 
         throw new Error(
             "Invalid email or password"
         );
 
     }
-
-
 
 
     const token =
         app.jwt.sign({
 
-            id:user.id,
+            id: user.id,
 
-            email:user.email,
+            email: user.email,
 
-            role:user.role
+            role: user.role
 
-        },{
-            expiresIn:"7d"
+        }, {
+            expiresIn: "7d"
         });
-
-
-
 
 
     return {
 
-        message:"Login successful",
+        message: "Login successful",
 
+        user: {
 
-        user:{
+            id: user.id,
 
-            id:user.id,
+            name: user.name,
 
-            name:user.name,
+            email: user.email,
 
-            email:user.email,
+            phone: user.phone,
 
-            phone:user.phone,
+            avatar: user.avatar,
 
-            role:user.role
+            verifiedSeller: user.verifiedSeller,
+
+            role: user.role
 
         },
-
 
         token
 
     };
-
 
 }

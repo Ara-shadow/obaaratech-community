@@ -1,28 +1,16 @@
 import type {
-
- FastifyRequest,
-
- FastifyReply
-
+  FastifyRequest,
+  FastifyReply
 } from "fastify";
 
-
 import {
-
- createSubscriptionSchema
-
+  createSubscriptionSchema
 } from "./seller.subscription.schema.js";
 
-
 import {
-
- subscribeSeller,
-
- fetchMySubscription
-
+  subscribeSeller,
+  fetchMySubscription
 } from "./seller.subscription.service.js";
-
-
 
 
 
@@ -32,76 +20,54 @@ import {
 // =====================================
 
 export async function subscribeController(
-
- request:FastifyRequest,
-
- reply:FastifyReply
-
+  request: FastifyRequest,
+  reply: FastifyReply
 ){
 
- try {
+  try {
+
+    const user = request.user as {
+      id: string;
+    };
 
 
-  const user = request.user as {
-
-    id:string;
-
-  };
-
+    const data =
+      createSubscriptionSchema.parse(
+        request.body
+      );
 
 
-  const data =
-
-    createSubscriptionSchema.parse(
-
-      request.body
-
-    );
+    const subscription =
+      await subscribeSeller(
+        user.id,
+        data.planId
+      );
 
 
+    return reply.code(201).send({
 
-  const subscription =
+      success: true,
 
-    await subscribeSeller(
+      message: "Subscription activated",
 
-      request.server,
+      subscription
 
-      user.id,
-
-      data.planId
-
-    );
+    });
 
 
+  } catch(error: any){
 
-  return reply.code(201).send({
+    return reply.code(400).send({
 
-    success:true,
+      success: false,
 
-    message:"Subscription activated",
+      message: error.message
 
-    subscription
+    });
 
-  });
-
-
-
- }catch(error:any){
-
-
-  return reply.code(400).send({
-
-    success:false,
-
-    message:error.message
-
-  });
-
-
- }
+  }
 
 }
-
 
 
 
@@ -113,58 +79,42 @@ export async function subscribeController(
 // =====================================
 
 export async function mySubscriptionController(
-
- request:FastifyRequest,
-
- reply:FastifyReply
-
+  request: FastifyRequest,
+  reply: FastifyReply
 ){
 
- try {
+  try {
+
+    const user = request.user as {
+      id: string;
+    };
 
 
-  const user = request.user as {
-
-    id:string;
-
-  };
-
+    const subscription =
+      await fetchMySubscription(
+        user.id
+      );
 
 
-  const subscription =
+    return reply.send({
 
-    await fetchMySubscription(
+      success: true,
 
-      request.server,
+      subscription
 
-      user.id
-
-    );
+    });
 
 
+  } catch(error: any){
 
-  return reply.send({
+    return reply.code(400).send({
 
-    success:true,
+      success: false,
 
-    subscription
+      message: error.message
 
-  });
+    });
 
-
-
- }catch(error:any){
-
-
-  return reply.code(400).send({
-
-    success:false,
-
-    message:error.message
-
-  });
-
-
- }
+  }
 
 }

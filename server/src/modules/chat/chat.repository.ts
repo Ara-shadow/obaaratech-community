@@ -1,4 +1,4 @@
-import { prisma } from "../../database/prisma.js";
+import { prisma } from "../../lib/prisma.js";
 
 
 export async function createConversation(data:{

@@ -1,4 +1,8 @@
-import { prisma } from "../../database/prisma.js";
+import { prisma } from "../../lib/prisma.js";
+import {
+    ListingStatus,
+    ListingType
+} from "@prisma/client";
 
 import {
     createListingWithFeatured,
@@ -8,7 +12,8 @@ import {
     updateListing as updateListingRepository,
     deleteListing,
     changeListingStatus,
-    searchListings
+    searchListings,
+    getRelatedListings,
 } from "./listing.repository.js";
 
 
@@ -69,29 +74,31 @@ export async function createNewListing(
 
  return createListingWithFeatured({
 
-        title:data.title,
+    title:data.title,
 
-        description:data.description,
+    description:data.description,
 
-        price:Number(data.price),
+    price:Number(data.price),
 
-        location:data.location,
+    location:data.location,
 
-        condition:data.condition,
+    condition:data.condition,
 
-        type:data.type,
+    type:data.type,
 
-        negotiable:data.negotiable,
+    negotiable:data.negotiable,
 
-        available:data.available,
+    available:data.available,
 
-        status:data.status,
+    status:data.status,
 
-        categoryId:data.categoryId,
+    categoryId:data.categoryId,
 
-        ownerId:userId,
+    details:data.details,
 
-        featured
+    ownerId:userId,
+
+    featured
 
 });
 
@@ -257,21 +264,35 @@ export async function removeListing(
 // =================================
 
 export async function updateListingStatus(
+  id: string,
+  userId: string,
+  status: ListingStatus
+) {
 
-    id:string,
+  return changeListingStatus(
+    id,
+    userId,
+    status
+  );
 
-    userId:string,
+}
 
-    status:string
+// =================================
+// RELATED LISTINGS
+// =================================
 
+export async function fetchRelatedListings(
+    listingId: string,
+    categoryId?: string | null,
+    type?: ListingType,
+    location?: string | null
 ){
 
-    return changeListingStatus(
-
-        id,
-
-        status
-
+    return getRelatedListings(
+        listingId,
+        categoryId,
+        type,
+        location
     );
 
 }

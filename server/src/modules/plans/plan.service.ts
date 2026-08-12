@@ -6,10 +6,7 @@ import {
 from "./plan.repository.js";
 
 
-import {
-    prisma
-}
-from "../../lib/prisma.js";
+import { prisma } from "../../lib/prisma.js";
 
 
 
@@ -40,7 +37,6 @@ export async function fetchUserPlan(
         await createDefaultPlans();
 
 
-
         const plans =
             await getPlans();
 
@@ -48,7 +44,7 @@ export async function fetchUserPlan(
 
         const free =
             plans.find(
-                p => p.name === "FREE"
+                p=>p.name==="FREE"
             );
 
 
@@ -56,23 +52,36 @@ export async function fetchUserPlan(
         if(!free){
 
             throw new Error(
-                "Free plan not found"
+                "FREE plan not found"
             );
 
         }
 
 
 
+        const expiry =
+            new Date();
+
+
+        expiry.setDate(
+            expiry.getDate()+free.duration
+        );
+
+
+
         userPlan =
-        await prisma.userPlan.create({
+        await prisma.sellerSubscription.create({
 
             data:{
 
                 userId,
 
-                planId:free.id
+                planId:free.id,
+
+                expiryDate:expiry
 
             },
+
 
             include:{
 

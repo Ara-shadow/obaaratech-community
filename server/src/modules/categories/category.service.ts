@@ -1,49 +1,76 @@
 import {
-
   createCategory,
   getCategories,
   getCategoryById,
   getCategoryTree
-
 } from "./category.repository.js";
 
 
+// =====================================================
+// CATEGORY INPUT
+// =====================================================
+
+export type CreateCategoryInput = {
+
+  name: string;
+
+ slug: string;
+
+  icon?: string;
+
+  image?: string;
+
+  description?: string;
+
+  parentId?: string;
+
+  sortOrder?: number;
+
+};
 
 
+// =====================================================
+// CREATE CATEGORY
+// =====================================================
 
 export async function createNewCategory(
-  name:string
-){
+  data: CreateCategoryInput
+) {
 
-  return createCategory(name);
+  return createCategory(data);
 
 }
 
 
+// =====================================================
+// GET ALL CATEGORIES
+// =====================================================
 
-
-export async function fetchCategories(){
+export async function fetchCategories() {
 
   return getCategories();
 
 }
 
 
-
+// =====================================================
+// GET CATEGORY BY ID
+// =====================================================
 
 export async function fetchCategoryById(
-  id:string
-){
+  id: string
+) {
 
   return getCategoryById(id);
 
 }
 
 
+// =====================================================
+// GET CATEGORY TREE
+// =====================================================
 
-
-
-export async function fetchCategoryTree(){
+export async function fetchCategoryTree() {
 
   return getCategoryTree();
 

@@ -1,10 +1,10 @@
 import {
-    getUserNotifications,
+    getNotifications,
     getUnreadCount,
-    markNotificationRead,
-    markAllNotificationsRead,
+    markAsRead,
+    markAllAsRead,
     createNotification
-} from "./notifications.repository";
+} from "./notifications.repository.js";
 
 
 
@@ -13,7 +13,7 @@ export async function listNotifications(
 ){
 
     const notifications =
-        await getUserNotifications(userId);
+        await getNotifications(userId);
 
 
     const unread =
@@ -37,7 +37,7 @@ export function readNotification(
     userId:string
 ){
 
-    return markNotificationRead(
+    return markAsRead(
         id,
         userId
     );
@@ -50,7 +50,7 @@ export function readAllNotifications(
     userId:string
 ){
 
-    return markAllNotificationsRead(
+    return markAllAsRead(
         userId
     );
 

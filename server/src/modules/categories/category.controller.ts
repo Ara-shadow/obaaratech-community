@@ -3,7 +3,6 @@ import type {
   FastifyRequest
 } from "fastify";
 
-
 import {
   createNewCategory,
   fetchCategories,
@@ -12,30 +11,33 @@ import {
 } from "./category.service.js";
 
 
-
-
+// =====================================================
 // CREATE CATEGORY
+// =====================================================
 
 export async function createCategoryController(
   request: FastifyRequest,
   reply: FastifyReply
-){
+) {
 
-  const body =
-    request.body as {
-      name:string;
-    };
+ const body = request.body as {
+  name: string;
+  slug: string;
+  icon?: string;
+  image?: string;
+  description?: string;
+  parentId?: string;
+  sortOrder?: number;
+};
 
 
-  const category =
-    await createNewCategory(
-      body.name
-    );
+const category =
+  await createNewCategory(body);
 
 
   return reply.code(201).send({
 
-    success:true,
+    success: true,
 
     category
 
@@ -44,14 +46,14 @@ export async function createCategoryController(
 }
 
 
-
-
+// =====================================================
 // GET ALL CATEGORIES
+// =====================================================
 
 export async function getCategoriesController(
-  request:FastifyRequest,
-  reply:FastifyReply
-){
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
 
   const categories =
     await fetchCategories();
@@ -59,7 +61,7 @@ export async function getCategoriesController(
 
   return reply.send({
 
-    success:true,
+    success: true,
 
     categories
 
@@ -68,14 +70,14 @@ export async function getCategoriesController(
 }
 
 
-
-
+// =====================================================
 // GET CATEGORY TREE
+// =====================================================
 
 export async function getCategoryTreeController(
-  request:FastifyRequest,
-  reply:FastifyReply
-){
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
 
   const categories =
     await fetchCategoryTree();
@@ -83,7 +85,7 @@ export async function getCategoryTreeController(
 
   return reply.send({
 
-    success:true,
+    success: true,
 
     categories
 
@@ -92,18 +94,18 @@ export async function getCategoryTreeController(
 }
 
 
-
-
+// =====================================================
 // GET SINGLE CATEGORY
+// =====================================================
 
 export async function getCategoryController(
-  request:FastifyRequest,
-  reply:FastifyReply
-){
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
 
-  const {id} =
+  const { id } =
     request.params as {
-      id:string;
+      id: string;
     };
 
 
@@ -111,24 +113,22 @@ export async function getCategoryController(
     await fetchCategoryById(id);
 
 
-
-  if(!category){
+  if (!category) {
 
     return reply.code(404).send({
 
-      success:false,
+      success: false,
 
-      message:"Category not found"
+      message: "Category not found"
 
     });
 
   }
 
 
-
   return reply.send({
 
-    success:true,
+    success: true,
 
     category
 

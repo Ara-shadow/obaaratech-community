@@ -1,20 +1,54 @@
-import { prisma } from "../../database/prisma.js";
+import { prisma } from "../../lib/prisma.js";
 
 
+// =====================================================
+// CATEGORY INPUT
+// =====================================================
+
+export type CreateCategoryData = {
+
+  name: string;
+
+slug: string;
+
+  icon?: string;
+
+  image?: string;
+
+  description?: string;
+
+  parentId?: string;
+
+  sortOrder?: number;
+
+};
+
+
+// =====================================================
 // CREATE CATEGORY
+// =====================================================
 
 export async function createCategory(
-  name:string,
-  parentId?:string
-){
+  data: CreateCategoryData
+) {
 
   return prisma.category.create({
 
-    data:{
+    data: {
 
-      name,
+      name: data.name,
 
-      parentId
+      slug: data.slug,
+
+      icon: data.icon,
+
+      image: data.image,
+
+      description: data.description,
+
+      parentId: data.parentId,
+
+      sortOrder: data.sortOrder
 
     }
 
@@ -23,17 +57,17 @@ export async function createCategory(
 }
 
 
-
-
+// =====================================================
 // GET ALL CATEGORIES
+// =====================================================
 
-export async function getCategories(){
+export async function getCategories() {
 
   return prisma.category.findMany({
 
-    orderBy:{
+    orderBy: {
 
-      createdAt:"desc"
+      createdAt: "desc"
 
     }
 
@@ -42,30 +76,29 @@ export async function getCategories(){
 }
 
 
-
-
-
+// =====================================================
 // GET CATEGORY BY ID
+// =====================================================
 
 export async function getCategoryById(
-  id:string
-){
+  id: string
+) {
 
   return prisma.category.findUnique({
 
-    where:{
+    where: {
 
       id
 
     },
 
-    include:{
+    include: {
 
-      children:true,
+      children: true,
 
-      parent:true,
+      parent: true,
 
-      listings:true
+      listings: true
 
     }
 
@@ -74,50 +107,47 @@ export async function getCategoryById(
 }
 
 
+// =====================================================
+// GET CATEGORY TREE
+// =====================================================
 
+export async function getCategoryTree() {
 
+  const categories =
+    await prisma.category.findMany({
 
+      orderBy: {
 
-// GET JUMIA STYLE CATEGORY TREE
-
-export async function getCategoryTree(){
-
-  return prisma.category.findMany({
-
-    where:{
-
-      parentId:null
-
-    },
-
-
-    include:{
-
-
-      children:{
-
-
-        include:{
-
-
-          children:true
-
-
-        }
-
+        name: "asc"
 
       }
 
+    });
 
-    },
+
+  const buildTree = (
+    parentId: string | null
+  ): any[] => {
+
+    return categories
+
+      .filter(
+        category =>
+          category.parentId === parentId
+      )
+
+      .map(category => ({
+
+        ...category,
+
+        children:
+          buildTree(category.id)
+
+      }));
+
+  };
 
 
-    orderBy:{
-
-      name:"asc"
-
-    }
-
-  });
+  return buildTree(null);
 
 }
