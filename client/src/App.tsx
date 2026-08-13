@@ -26,6 +26,12 @@ import MyListings from "./pages/MyListings";
 
 import Account from "./pages/Account";
 
+import Profile from "./pages/Profile";
+
+import Favourites from "./pages/Favourites";
+
+import Cart from "./pages/Cart";
+
 function App() {
 
     return (
@@ -82,6 +88,31 @@ function App() {
     }
 />
 
+<Route
+    path="/profile"
+    element={
+        <ProtectedRoute>
+            <Profile />
+        </ProtectedRoute>
+    }
+/>
+
+<Route
+    path="/favourites"
+    element={
+        <ProtectedRoute>
+            <Favourites />
+        </ProtectedRoute>
+    }
+/>
+<Route
+    path="/cart"
+    element={
+        <ProtectedRoute>
+            <Cart />
+        </ProtectedRoute>
+    }
+/>
 
     <Route
         path="*"

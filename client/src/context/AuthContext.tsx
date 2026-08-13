@@ -11,7 +11,8 @@ import type {
 
 import {
     loginUser,
-    registerUser
+    registerUser,
+    getCurrentUser
 } from "../api/auth";
 
 import type {
@@ -96,56 +97,132 @@ export function AuthProvider({
 
     useEffect(() => {
 
-        const savedToken =
-            localStorage.getItem(
-                "token"
-            );
+        let mounted = true;
 
 
-        const savedUser =
-            localStorage.getItem(
-                "user"
-            );
+        async function restoreAuthentication() {
+
+            const savedToken =
+                localStorage.getItem(
+                    "token"
+                );
 
 
-        if (
-            savedToken &&
-            savedUser
-        ) {
+            if (!savedToken) {
+
+                if (mounted) {
+
+                    setLoading(false);
+
+                }
+
+                return;
+
+            }
+
 
             try {
 
-                const parsedUser =
-                    JSON.parse(
-                        savedUser
-                    ) as AuthUser;
+                // -----------------------------------------
+                // Restore token immediately
+                // -----------------------------------------
+
+                if (mounted) {
+
+                    setToken(
+                        savedToken
+                    );
+
+                }
 
 
-                setToken(
-                    savedToken
-                );
+                // -----------------------------------------
+                // Get fresh user from database
+                // -----------------------------------------
+
+                const currentUser =
+                    await getCurrentUser();
+
+
+                if (!mounted) {
+
+                    return;
+
+                }
 
 
                 setUser(
-                    parsedUser
+                    currentUser
                 );
 
-            } catch {
+
+                // -----------------------------------------
+                // Keep localStorage synchronized
+                // -----------------------------------------
+
+                localStorage.setItem(
+                    "user",
+                    JSON.stringify(
+                        currentUser
+                    )
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Authentication restore failed:",
+                    error
+                );
+
+
+                // -----------------------------------------
+                // Token is invalid or expired
+                // -----------------------------------------
 
                 localStorage.removeItem(
                     "token"
                 );
 
+
                 localStorage.removeItem(
                     "user"
                 );
+
+
+                if (mounted) {
+
+                    setToken(
+                        null
+                    );
+
+                    setUser(
+                        null
+                    );
+
+                }
+
+            } finally {
+
+                if (mounted) {
+
+                    setLoading(false);
+
+                }
 
             }
 
         }
 
 
-        setLoading(false);
+        restoreAuthentication();
+
+
+        return () => {
+
+            mounted = false;
+
+        };
 
     }, []);
 
@@ -164,11 +241,19 @@ export function AuthProvider({
             );
 
 
+        // ---------------------------------------------
+        // Save token
+        // ---------------------------------------------
+
         localStorage.setItem(
             "token",
             response.token
         );
 
+
+        // ---------------------------------------------
+        // Save user
+        // ---------------------------------------------
 
         localStorage.setItem(
             "user",
@@ -177,6 +262,10 @@ export function AuthProvider({
             )
         );
 
+
+        // ---------------------------------------------
+        // Update React state
+        // ---------------------------------------------
 
         setToken(
             response.token
@@ -207,11 +296,19 @@ export function AuthProvider({
             );
 
 
+        // ---------------------------------------------
+        // Save token
+        // ---------------------------------------------
+
         localStorage.setItem(
             "token",
             response.token
         );
 
+
+        // ---------------------------------------------
+        // Save user
+        // ---------------------------------------------
 
         localStorage.setItem(
             "user",
@@ -220,6 +317,10 @@ export function AuthProvider({
             )
         );
 
+
+        // ---------------------------------------------
+        // Update React state
+        // ---------------------------------------------
 
         setToken(
             response.token

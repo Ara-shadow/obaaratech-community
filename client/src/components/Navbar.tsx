@@ -15,16 +15,28 @@ import {
     useAuth
 } from "../context/AuthContext";
 
+import {
+    useCart
+} from "../context/CartContext";
+
 
 export default function Navbar() {
 
-    const navigate = useNavigate();
+    const navigate =
+        useNavigate();
 
-const {
-    user,
-    isAuthenticated,
-    logout
-} = useAuth();
+
+    const {
+        user,
+        isAuthenticated,
+        logout
+    } = useAuth();
+
+
+    const {
+        itemCount
+    } = useCart();
+
 
     const [
         search,
@@ -38,7 +50,9 @@ const {
 
         event.preventDefault();
 
-        const value = search.trim();
+
+        const value =
+            search.trim();
 
 
         if (!value) {
@@ -57,6 +71,15 @@ const {
     }
 
 
+    function handleLogout() {
+
+        logout();
+
+        navigate("/");
+
+    }
+
+
     return (
 
         <header className="site-header">
@@ -64,7 +87,9 @@ const {
             <div className="top-header">
 
 
-                {/* LOGO */}
+                {/* =================================================
+                    LOGO
+                ================================================= */}
 
                 <div className="logo">
 
@@ -77,7 +102,9 @@ const {
                 </div>
 
 
-                {/* MARKETPLACE SEARCH */}
+                {/* =================================================
+                    MARKETPLACE SEARCH
+                ================================================= */}
 
                 <form
                     className="search-box"
@@ -88,13 +115,18 @@ const {
                         type="text"
                         value={search}
                         onChange={(event) =>
-                            setSearch(event.target.value)
+                            setSearch(
+                                event.target.value
+                            )
                         }
                         placeholder="Search products, services, jobs and categories"
                         aria-label="Search marketplace"
                     />
 
-                    <button type="submit">
+
+                    <button
+                        type="submit"
+                    >
 
                         🔍 Search
 
@@ -103,101 +135,190 @@ const {
                 </form>
 
 
-                  {/* ACTIONS */}
+                {/* =================================================
+                    ACTIONS
+                ================================================= */}
 
-        <div className="header-actions">
-
-            {
-                isAuthenticated ? (
-
-                    <>
-
-                        <Link to="/account">
-
-    👤 {user?.name || "Account"}
-
-</Link>
+                <div className="header-actions">
 
 
-                        <Link to="/cart">
+                    {isAuthenticated ? (
 
-                            🛒 Cart
+                        <>
 
-                        </Link>
+                            {/* ACCOUNT */}
 
+                            <Link to="/account">
 
-                        <Link
-                            className="sell-button"
-                            to="/create-listing"
-                        >
+                                👤{" "}
+                                {user?.name ||
+                                    "Account"}
 
-                            + Sell
-
-                        </Link>
+                            </Link>
 
 
-                        <button
-                            type="button"
-                            onClick={() => {
+                            {/* PROFILE */}
 
-                                logout();
+                            <Link to="/profile">
 
-                                navigate("/");
+                                Profile
 
-                            }}
-                        >
-
-                            Logout
-
-                        </button>
+                            </Link>
 
 
-                    </>
+                            {/* CART */}
+
+                            <Link to="/cart">
+
+                                🛒 Cart
+
+                                {itemCount > 0 && (
+
+                                    <span
+                                        style={{
+                                            display:
+                                                "inline-flex",
+                                            alignItems:
+                                                "center",
+                                            justifyContent:
+                                                "center",
+                                            minWidth:
+                                                "20px",
+                                            height:
+                                                "20px",
+                                            padding:
+                                                "0 5px",
+                                            marginLeft:
+                                                "5px",
+                                            borderRadius:
+                                                "999px",
+                                            fontSize:
+                                                "12px",
+                                            fontWeight:
+                                                700,
+                                            lineHeight:
+                                                1
+                                        }}
+                                    >
+
+                                        {itemCount}
+
+                                    </span>
+
+                                )}
+
+                            </Link>
 
 
-                ) : (
+                            {/* SELL */}
 
-                    <>
+                            <Link
+                                className="sell-button"
+                                to="/create-listing"
+                            >
 
-                        <Link to="/login">
+                                + Sell
 
-                            👤 Login
-
-                        </Link>
-
-
-                        <Link to="/register">
-
-                            Register
-
-                        </Link>
+                            </Link>
 
 
-                        <Link to="/cart">
+                            {/* LOGOUT */}
 
-                            🛒 Cart
+                            <button
+                                type="button"
+                                onClick={
+                                    handleLogout
+                                }
+                            >
 
-                        </Link>
+                                Logout
+
+                            </button>
+
+                        </>
+
+                    ) : (
+
+                        <>
+
+                            {/* LOGIN */}
+
+                            <Link to="/login">
+
+                                👤 Login
+
+                            </Link>
 
 
-                        <Link
-                            className="sell-button"
-                            to="/create-listing"
-                        >
+                            {/* REGISTER */}
 
-                            + Sell
+                            <Link to="/register">
 
-                        </Link>
+                                Register
+
+                            </Link>
 
 
-                    </>
+                            {/* CART */}
 
-                )
+                            <Link to="/cart">
 
-            }
+                                🛒 Cart
 
-        </div>
+                                {itemCount > 0 && (
 
+                                    <span
+                                        style={{
+                                            display:
+                                                "inline-flex",
+                                            alignItems:
+                                                "center",
+                                            justifyContent:
+                                                "center",
+                                            minWidth:
+                                                "20px",
+                                            height:
+                                                "20px",
+                                            padding:
+                                                "0 5px",
+                                            marginLeft:
+                                                "5px",
+                                            borderRadius:
+                                                "999px",
+                                            fontSize:
+                                                "12px",
+                                            fontWeight:
+                                                700,
+                                            lineHeight:
+                                                1
+                                        }}
+                                    >
+
+                                        {itemCount}
+
+                                    </span>
+
+                                )}
+
+                            </Link>
+
+
+                            {/* SELL */}
+
+                            <Link
+                                className="sell-button"
+                                to="/create-listing"
+                            >
+
+                                + Sell
+
+                            </Link>
+
+                        </>
+
+                    )}
+
+                </div>
 
             </div>
 

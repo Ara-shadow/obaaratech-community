@@ -28,9 +28,12 @@ model User {
   // Marketplace
   favourites         Favourite[]
   listings           Listing[]
+  cart               Cart?
   reviews            Review[]
   sellerPayments     SellerPayment[]
   sellerSubscription SellerSubscription?
+  orders             Order[]
+  sellerOrderItems   OrderItem[]         @relation("OrderItemSeller")
 
   // Community
   posts              Post[]
@@ -138,20 +141,20 @@ model Category {
 // =====================================================
 
 model Listing {
-  id          String        @id @default(uuid())
+  id          String     @id @default(uuid())
   title       String
   description String
   price       Int?
   location    String?
   condition   String?
+  cartItems   CartItem[]
+  details     Json?
 
-details     Json?
-
-  type        ListingType   @default(PRODUCT)
-  negotiable  Boolean       @default(true)
-  available   Boolean       @default(true)
-  status      ListingStatus @default(ACTIVE)
-  featured    Boolean       @default(false)
+  type       ListingType   @default(PRODUCT)
+  negotiable Boolean       @default(true)
+  available  Boolean       @default(true)
+  status     ListingStatus @default(ACTIVE)
+  featured   Boolean       @default(false)
 
   ownerId    String
   categoryId String?
@@ -170,6 +173,9 @@ details     Json?
   legacyImages Image[]
 
   reviews Review[]
+
+  // Orders
+  orderItems OrderItem[]
 
   // Community chat
   conversations Conversation[]
@@ -221,6 +227,107 @@ model Favourite {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, listingId])
+}
+
+// =====================================================
+// CART
+// =====================================================
+
+model Cart {
+  id String @id @default(uuid())
+
+  userId String @unique
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items CartItem[]
+}
+
+// =====================================================
+// CART ITEMS
+// =====================================================
+
+model CartItem {
+  id String @id @default(uuid())
+
+  cartId String
+
+  listingId String
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, listingId])
+}
+
+// =====================================================
+// ORDER
+// =====================================================
+
+model Order {
+  id          String @id @default(uuid())
+  orderNumber String @unique
+
+  buyerId String
+
+  subtotal    Int
+  deliveryFee Int @default(0)
+  total       Int
+
+  paymentMethod OrderPaymentMethod @default(CASH_ON_DELIVERY)
+  paymentStatus OrderPaymentStatus @default(PENDING)
+  status        OrderStatus        @default(PENDING)
+
+  deliveryAddress String
+  phone           String
+  note            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer User        @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  items OrderItem[]
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+// =====================================================
+// ORDER ITEM
+// =====================================================
+
+model OrderItem {
+  id String @id @default(uuid())
+
+  orderId   String
+  listingId String
+  sellerId  String
+
+  title     String
+  unitPrice Int
+  quantity  Int
+  subtotal  Int
+
+  createdAt DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  seller  User    @relation("OrderItemSeller", fields: [sellerId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([listingId])
+  @@index([sellerId])
 }
 
 // =====================================================
@@ -438,4 +545,27 @@ enum UserRole {
   SELLER
   ADMIN
   SUPER_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum OrderPaymentMethod {
+  CASH_ON_DELIVERY
+  BANK_TRANSFER
+  PAYSTACK
 }

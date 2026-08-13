@@ -21,6 +21,7 @@ import profileRoutes from "./modules/profile/profile.routes.js";
 import planRoutes from "./modules/plans/plan.routes.js";
 
 import { favouriteRoutes } from "./modules/favourites/index.js";
+import cartRoutes from "./modules/cart/cart.routes.js";
 
 import postsRoutes from "./modules/posts/posts.routes.js";
 import commentsRoutes from "./modules/comments/comments.routes.js";
@@ -274,6 +275,19 @@ export async function buildApp() {
             prefix: "/api/favourites"
         }
     );
+
+
+
+    // ===============================
+// CART
+// ===============================
+
+await app.register(
+    cartRoutes,
+    {
+        prefix: "/api/cart"
+    }
+);
 
     // ===============================
     // UPLOADS

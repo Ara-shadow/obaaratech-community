@@ -89,3 +89,18 @@ export async function loginUser(
     return response.data;
 
 }
+
+// =====================================================
+// GET CURRENT USER
+// =====================================================
+
+export async function getCurrentUser(): Promise<AuthUser> {
+
+    const response =
+        await api.get(
+            "/users/me"
+        );
+
+    return response.data.user as AuthUser;
+
+}

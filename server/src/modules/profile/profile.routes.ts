@@ -1,4 +1,10 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
+
+import {
+    profile,
+    editProfile
+} from "./profile.controller.js";
+
 import { authenticate } from "../../plugins/auth.js";
 
 
@@ -8,33 +14,20 @@ export default async function profileRoutes(
 
 
     app.get(
-
         "/",
-
         {
-
             preHandler: authenticate
-
         },
+        profile
+    );
 
 
-        async (request) => {
-
-
-            return {
-
-
-                message: "Profile route protected successfully",
-
-
-                user: request.user
-
-
-            };
-
-
-        }
-
+    app.patch(
+        "/",
+        {
+            preHandler: authenticate
+        },
+        editProfile
     );
 
 

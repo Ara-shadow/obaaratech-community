@@ -21,6 +21,10 @@ import {
     getRelatedListings
 } from "../api/listings";
 
+import {
+    addToCart
+} from "../api/cart";
+
 import type {
     Listing
 } from "../types/listing";
@@ -66,7 +70,21 @@ export default function ProductDetails() {
         isLightboxOpen,
         setIsLightboxOpen
     ] = useState(false);
+ 
+    const [
+    addingToCart,
+    setAddingToCart
+] = useState(false);
 
+const [
+    cartMessage,
+    setCartMessage
+] = useState("");
+
+const [
+    cartError,
+    setCartError
+] = useState("");
 
     // =====================================================
     // LOAD LISTING
@@ -565,6 +583,80 @@ const detailEntries =
 
     }
 
+// =====================================================
+// ADD TO CART
+// =====================================================
+
+async function handleAddToCart() {
+
+    if (!listing) {
+        return;
+    }
+
+
+    if (!listing.available) {
+
+        setCartError(
+            "This listing is currently unavailable."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        setAddingToCart(true);
+
+        setCartMessage("");
+
+        setCartError("");
+
+
+        await addToCart(
+            listing.id
+        );
+
+
+        setCartMessage(
+            "Added to cart successfully."
+        );
+
+
+    } catch (requestError: any) {
+
+        console.error(
+            "Add to cart error:",
+            requestError
+        );
+
+
+        if (
+            requestError?.response?.status === 401
+        ) {
+
+            setCartError(
+                "Please log in to add items to your cart."
+            );
+
+            return;
+
+        }
+
+
+        setCartError(
+            requestError?.response?.data?.message ||
+            "Unable to add this item to your cart."
+        );
+
+    } finally {
+
+        setAddingToCart(false);
+
+    }
+
+}
 
     // =====================================================
     // PRODUCT PAGE
@@ -964,35 +1056,100 @@ const detailEntries =
                     {/* =================================================
                         ACTION BUTTONS
                     ================================================= */}
-
-                    <div className="action-buttons">
-
-
-                        <button
-                            type="button"
-                            className="buy-button"
-                            onClick={handleBuyNow}
-                            disabled={!listing.available}
-                        >
-
-                            🛒 Buy Now
-
-                        </button>
+<div className="action-buttons">
 
 
-                        <button
-                            type="button"
-                            className="chat-button"
-                            onClick={contactSeller}
-                        >
+    <button
+        type="button"
+        className="buy-button"
+        onClick={handleAddToCart}
+        disabled={
+            !listing.available ||
+            addingToCart
+        }
+    >
 
-                            💬 Contact Seller
+        {addingToCart
+            ? "Adding..."
+            : "🛒 Add to Cart"}
 
-                        </button>
+    </button>
 
 
-                    </div>
+    <button
+        type="button"
+        className="buy-button"
+        onClick={handleBuyNow}
+        disabled={!listing.available}
+    >
 
+        ⚡ Buy Now
+
+    </button>
+
+
+    <button
+        type="button"
+        className="chat-button"
+        onClick={contactSeller}
+    >
+
+        💬 Contact Seller
+
+    </button>
+
+
+</div>
+
+
+{cartMessage && (
+
+    <div
+        className="listing-form-message success"
+        role="status"
+        style={{
+            marginTop: "12px"
+        }}
+    >
+
+        {cartMessage}
+
+        {" "}
+
+        <Link to="/cart">
+            View Cart
+        </Link>
+
+    </div>
+
+)}
+
+
+{cartError && (
+
+    <div
+        className="listing-form-message error"
+        role="alert"
+        style={{
+            marginTop: "12px"
+        }}
+    >
+
+        {cartError}
+
+        {cartError.includes("log in") && (
+            <>
+                {" "}
+
+                <Link to="/login">
+                    Login
+                </Link>
+            </>
+        )}
+
+    </div>
+
+)}
 
                     {/* =================================================
                         SELLER SUMMARY
