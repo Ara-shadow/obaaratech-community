@@ -1,0 +1,291 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+model User {
+
+  id String @id @default(uuid())
+
+  name String
+
+  email String @unique
+
+  password String
+
+  role String @default("USER")
+
+
+  sellerSubscription SellerSubscription?
+
+  listings Listing[]
+
+  favourites Favourite[]
+
+  reviews Review[] @relation("UserReviews")
+
+
+  buyerConversations Conversation[] @relation("Buyer")
+
+  sellerConversations Conversation[] @relation("Seller")
+
+
+  messages Message[]
+
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+}
+
+
+
+model SellerPlan {
+
+  id String @id @default(uuid())
+
+
+  name String @unique
+
+  price Int
+
+  duration Int
+
+  maxListings Int
+
+
+  featuredListing Boolean @default(false)
+
+  prioritySearch Boolean @default(false)
+
+  verifiedBadge Boolean @default(false)
+
+
+  subscriptions SellerSubscription[]
+
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+}
+
+
+
+model SellerSubscription {
+
+  id String @id @default(uuid())
+
+
+  userId String
+
+  planId String
+
+
+  startDate DateTime @default(now())
+
+  expiryDate DateTime
+
+  active Boolean @default(true)
+
+
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan SellerPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+}
+
+
+
+model Category {
+
+  id String @id @default(uuid())
+
+
+  name String @unique
+
+
+  listings Listing[]
+
+
+  createdAt DateTime @default(now())
+
+}
+
+
+
+model Listing {
+
+  id String @id @default(uuid())
+
+
+  title String
+
+  description String
+
+
+  price Int
+
+
+  images String[]
+
+
+  ownerId String
+
+  categoryId String?
+
+
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+
+  favourites Favourite[]
+
+  reviews Review[]
+
+  conversations Conversation[]
+
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+}
+
+
+
+model Favourite {
+
+  id String @id @default(uuid())
+
+
+  userId String
+
+  listingId String
+
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+
+
+  createdAt DateTime @default(now())
+
+
+  @@unique([userId, listingId])
+
+}
+
+
+
+model Review {
+
+  id String @id @default(uuid())
+
+
+  userId String
+
+  listingId String
+
+
+  rating Int
+
+  comment String
+
+
+
+  user User @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
+
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+
+
+  createdAt DateTime @default(now())
+
+}
+
+
+
+model Conversation {
+
+
+  id String @id @default(uuid())
+
+
+  buyerId String
+
+  sellerId String
+
+  listingId String?
+
+
+
+  buyer User @relation("Buyer", fields: [buyerId], references: [id], onDelete: Cascade)
+
+
+  seller User @relation("Seller", fields: [sellerId], references: [id], onDelete: Cascade)
+
+
+  listing Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+
+
+  messages Message[]
+
+
+
+  createdAt DateTime @default(now())
+
+
+
+  @@unique([buyerId, sellerId, listingId])
+
+}
+
+
+
+model Message {
+
+
+  id String @id @default(uuid())
+
+
+  conversationId String
+
+  senderId String
+
+
+  text String
+
+
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+
+
+  createdAt DateTime @default(now())
+
+}

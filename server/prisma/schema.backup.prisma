@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  SOLD
+  REJECTED
+  EXPIRED
+}
+
+enum ListingType {
+  PRODUCT
+  SERVICE
+  PROPERTY
+  VEHICLE
+  JOB
+  COURSE
+  EVENT
+  ANNOUNCEMENT
+}
+
+enum UserRole {
+  USER
+  SELLER
+  ADMIN
+}
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  password       String
+  phone          String?
+  avatar         String?
+  verifiedSeller Boolean  @default(false)
+  role           UserRole @default(USER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  listings           Listing[]
+  favourites         Favourite[]
+  reviews            Review[]
+  sellerSubscription SellerSubscription?
+}
+
+model SellerPlan {
+  id              String  @id @default(uuid())
+  name            String  @unique
+  price           Int     @default(0)
+  duration        Int
+  maxListings     Int     @default(5)
+  imageLimit      Int     @default(3)
+  featuredListing Boolean @default(false)
+  prioritySearch  Boolean @default(false)
+  verifiedBadge   Boolean @default(false)
+
+  subscriptions SellerSubscription[]
+  createdAt     DateTime             @default(now())
+}
+
+model SellerSubscription {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  planId     String
+  startDate  DateTime @default(now())
+  expiryDate DateTime
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan SellerPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+
+  id String @id @default(uuid())
+
+  name String
+
+  slug String @unique
+
+  icon String?
+
+  parentId String?
+
+  parent Category? @relation(
+    "CategoryHierarchy",
+    fields: [parentId],
+    references: [id]
+  )
+
+  children Category[] @relation("CategoryHierarchy")
+
+
+  createdAt DateTime @default(now())
+
+
+  listings Listing[]
+
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  price       Int?
+  location    String?
+  condition   String?
+  type        ListingType   @default(PRODUCT)
+  negotiable  Boolean       @default(true)
+  available   Boolean       @default(true)
+  status      ListingStatus @default(ACTIVE)
+  featured    Boolean       @default(false)
+  ownerId     String
+  categoryId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  images     ListingImage[]
+  favourites Favourite[]
+  reviews    Review[]
+}
+
+model ListingImage {
+  id        String @id @default(uuid())
+  url       String
+  listingId String
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Favourite {
+  id        String   @id @default(uuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}

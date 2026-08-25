@@ -1,0 +1,509 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// =====================
+// ENUMS
+// =====================
+
+enum Role {
+  USER
+  SELLER
+  ADMIN
+}
+
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  EXPIRED
+  REJECTED
+}
+
+
+enum PlanType {
+  FREE
+  PREMIUM
+  BUSINESS
+}
+
+
+// =====================
+// USER
+// =====================
+
+model User {
+
+  id String @id @default(uuid())
+
+  name String
+
+  email String @unique
+
+  password String
+
+  phone String?
+
+  whatsapp String?
+
+
+  role Role @default(USER)
+
+
+  listings Listing[]
+
+
+  favourites Favourite[]
+
+
+  reviews Review[] @relation("UserReviews")
+
+
+  buyerConversations Conversation[] @relation("Buyer")
+
+  sellerConversations Conversation[] @relation("Seller")
+
+
+  messages Message[]
+
+
+  sellerSubscriptions SellerSubscription[]
+
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+
+
+
+// =====================
+// SELLER PLANS
+// =====================
+
+model SellerPlan {
+
+  id String @id @default(uuid())
+
+
+  name PlanType @unique
+
+
+  price Float @default(0)
+
+
+  duration Int
+
+
+  maxListings Int
+
+
+  featuredListing Boolean @default(false)
+
+
+  prioritySearch Boolean @default(false)
+
+
+  verifiedBadge Boolean @default(false)
+
+
+  subscriptions SellerSubscription[]
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+}
+
+
+
+// =====================
+// SELLER SUBSCRIPTION
+// =====================
+
+model SellerSubscription {
+
+  id String @id @default(uuid())
+
+
+  userId String
+
+
+  planId String
+
+
+  startDate DateTime @default(now())
+
+
+  expiryDate DateTime
+
+
+  active Boolean @default(true)
+
+
+
+  user User @relation(
+    fields:[userId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+  plan SellerPlan @relation(
+    fields:[planId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+}
+
+
+
+
+// =====================
+// CATEGORY
+// =====================
+
+model Category {
+
+  id String @id @default(uuid())
+
+
+  name String @unique
+
+
+  listings Listing[]
+
+
+  createdAt DateTime @default(now())
+}
+
+
+
+// =====================
+// LISTING
+// =====================
+
+model Listing {
+
+
+  id String @id @default(uuid())
+
+
+  title String
+
+
+  description String
+
+
+  price Float?
+
+
+  negotiable Boolean @default(true)
+
+
+  type String @default("PRODUCT")
+
+
+  location String
+
+
+  status ListingStatus @default(ACTIVE)
+
+
+
+  ownerId String
+
+
+  owner User @relation(
+    fields:[ownerId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+
+  categoryId String?
+
+
+  category Category? @relation(
+    fields:[categoryId],
+    references:[id],
+    onDelete:SetNull
+  )
+
+
+
+  images Image[]
+
+
+  favourites Favourite[]
+
+
+  reviews Review[]
+
+
+  conversations Conversation[]
+
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+
+}
+
+
+
+// =====================
+// IMAGE
+// =====================
+
+model Image {
+
+  id String @id @default(uuid())
+
+
+  url String
+
+
+  position Int @default(0)
+
+
+
+  listingId String
+
+
+  listing Listing @relation(
+    fields:[listingId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+  createdAt DateTime @default(now())
+
+}
+
+
+
+
+// =====================
+// FAVOURITE
+// =====================
+
+model Favourite {
+
+
+  id String @id @default(uuid())
+
+
+  userId String
+
+
+  listingId String
+
+
+
+  user User @relation(
+    fields:[userId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+
+  listing Listing @relation(
+    fields:[listingId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+
+  createdAt DateTime @default(now())
+
+
+
+  @@unique([
+    userId,
+    listingId
+  ])
+
+}
+
+
+
+// =====================
+// REVIEW
+// =====================
+
+model Review {
+
+
+  id String @id @default(uuid())
+
+
+  rating Int
+
+
+  comment String?
+
+
+
+  userId String
+
+
+  user User @relation(
+    "UserReviews",
+    fields:[userId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+
+  listingId String
+
+
+
+  listing Listing @relation(
+    fields:[listingId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+
+  createdAt DateTime @default(now())
+
+}
+
+
+
+// =====================
+// CONVERSATION
+// =====================
+
+model Conversation {
+
+
+  id String @id @default(uuid())
+
+
+
+  buyerId String
+
+
+  sellerId String
+
+
+
+  listingId String?
+
+
+
+  buyer User @relation(
+    "Buyer",
+    fields:[buyerId],
+    references:[id]
+  )
+
+
+
+  seller User @relation(
+    "Seller",
+    fields:[sellerId],
+    references:[id]
+  )
+
+
+
+  listing Listing? @relation(
+    fields:[listingId],
+    references:[id]
+  )
+
+
+
+  messages Message[]
+
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+
+
+
+  @@unique([
+    buyerId,
+    sellerId,
+    listingId
+  ])
+
+}
+
+
+
+// =====================
+// MESSAGE
+// =====================
+
+model Message {
+
+
+  id String @id @default(uuid())
+
+
+
+  conversationId String
+
+
+  senderId String
+
+
+
+  conversation Conversation @relation(
+    fields:[conversationId],
+    references:[id],
+    onDelete:Cascade
+  )
+
+
+
+  sender User @relation(
+    fields:[senderId],
+    references:[id]
+  )
+
+
+
+  content String
+
+
+  read Boolean @default(false)
+
+
+
+  createdAt DateTime @default(now())
+
+}
