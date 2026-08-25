@@ -60,3 +60,6 @@ uploads/
 
 # Local API testing tools
 .postman/
+
+documents
+documents.pub
