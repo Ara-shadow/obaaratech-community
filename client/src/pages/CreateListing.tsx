@@ -34,6 +34,12 @@ import {
     getCategoryTree
 } from "../api/categories";
 
+import {
+    CURRENCY_OPTIONS,
+    DEFAULT_CURRENCY,
+    getCurrencySymbol,
+    type Currency
+} from "../services/currency";
 
 interface Category {
 
@@ -286,6 +292,13 @@ export default function CreateListing() {
         price,
         setPrice
     ] = useState("");
+
+    const [
+    currency,
+    setCurrency
+] = useState<Currency>(
+    DEFAULT_CURRENCY
+);
 
 const [
     condition,
@@ -768,6 +781,9 @@ const [
                 Number(price)
         }
         : {}),
+        
+      currency:
+            "NGN",
 
     negotiable,
 
@@ -1309,47 +1325,85 @@ event.target.value
 
 
                         {/* PRICE */}
+<div className="form-field">
 
-                        <div className="form-field">
+    <label htmlFor="listing-currency">
 
-                            <label htmlFor="listing-price">
+        Currency
 
-                                Price
-
-                            </label>
-
-
-                            <div className="price-input-wrapper">
-
-                                <span>
-                                    ₦
-                                </span>
+    </label>
 
 
-                                <input
-                                    id="listing-price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={price}
-                                    onChange={(event) =>
-                                        setPrice(
-                                            event.target.value
-                                        )
-                                    }
-                                    placeholder="0"
-                                    disabled={submitting}
-                                />
+    <select
+        id="listing-currency"
+        value={currency}
+        onChange={(event) =>
+            setCurrency(
+                event.target.value as Currency
+            )
+        }
+        disabled={submitting}
+    >
 
-                            </div>
+        {CURRENCY_OPTIONS.map(
+            option => (
+
+                <option
+                    key={option.value}
+                    value={option.value}
+                >
+
+                    {option.label}
+
+                </option>
+
+            )
+        )}
+
+    </select>
+
+</div>
 
 
-                            <small>
-                                Leave empty if buyers should contact you for pricing.
-                            </small>
+<div className="form-field">
 
-                        </div>
+    <label htmlFor="listing-price">
 
+        Price
+
+    </label>
+
+
+    <div className="price-input-wrapper">
+
+     <span>
+    {getCurrencySymbol(currency)}
+</span>
+
+
+        <input
+            id="listing-price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={price}
+            onChange={(event) =>
+                setPrice(
+                    event.target.value
+                )
+            }
+            placeholder="0"
+            disabled={submitting}
+        />
+
+    </div>
+
+
+    <small>
+        Leave empty if buyers should contact you for pricing.
+    </small>
+
+</div>
                     <div className="form-field">
 
     <label htmlFor="listing-condition">

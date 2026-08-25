@@ -736,8 +736,8 @@ verifiedBadge:false
 name:"BUSINESS",
 price:15000,
 duration:30,
-maxListings:200,
-imageLimit:50,
+maxListings:150,
+imageLimit:30,
 featuredListing:true,
 prioritySearch:true,
 verifiedBadge:true

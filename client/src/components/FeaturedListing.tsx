@@ -66,16 +66,20 @@ export default function FeaturedListing({
                 </h1>
 
 
-                <h2>
-
-                    {listing.price !== null &&
-                     listing.price !== undefined
-
-                        ? `₦${listing.price.toLocaleString()}`
-
-                        : "Contact Seller"}
-
-                </h2>
+               <h2>
+    {listing.price !== null &&
+     listing.price !== undefined
+        ? new Intl.NumberFormat(
+            "en-NG",
+            {
+                style: "currency",
+                currency:
+                    listing.currency ?? "NGN",
+                maximumFractionDigits: 2
+            }
+        ).format(listing.price)
+        : "Contact Seller"}
+</h2>
 
 
                 {listing.location && (

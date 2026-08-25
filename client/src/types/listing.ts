@@ -53,9 +53,11 @@ export interface Listing {
 
     description: string;
 
-    price: number | null;
+ price: number | null;
 
-    location: string | null;
+currency?: "NGN" | "USD" | "GBP" | "EUR";
+
+location: string | null;
 
     condition?: string | null;
 

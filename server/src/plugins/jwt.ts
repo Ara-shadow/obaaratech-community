@@ -1,13 +1,23 @@
 import fp from "fastify-plugin";
 
+export default fp(async (fastify) => {
 
-export default fp(async(fastify)=>{
+    const jwtSecret =
+        process.env.JWT_SECRET?.trim();
 
-  fastify.register(import("@fastify/jwt"),{
+    if (!jwtSecret) {
 
-    secret: process.env.JWT_SECRET || "secret"
+        throw new Error(
+            "JWT_SECRET environment variable is required"
+        );
 
-  });
+    }
 
+    await fastify.register(
+        import("@fastify/jwt"),
+        {
+            secret: jwtSecret
+        }
+    );
 
 });

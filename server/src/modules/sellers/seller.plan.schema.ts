@@ -3,22 +3,24 @@ import { z } from "zod";
 
 export const createSellerPlanSchema = z.object({
 
-  name:z.string().min(2),
+    name: z.string().min(2),
 
-  price:z.number().nonnegative(),
+    price: z.number().nonnegative(),
 
-  duration:z.number().positive(),
+    duration: z.number().positive(),
 
-  maxListings:z.number().positive(),
+    maxListings: z.number().positive(),
 
-  featuredListing:z.boolean().optional(),
+    imageLimit: z.number().positive(),
 
-  prioritySearch:z.boolean().optional(),
+    featuredListing: z.boolean().optional(),
 
-  verifiedBadge:z.boolean().optional()
+    prioritySearch: z.boolean().optional(),
+
+    verifiedBadge: z.boolean().optional()
 
 });
 
 
 export type CreateSellerPlanInput =
-  z.infer<typeof createSellerPlanSchema>;
+    z.infer<typeof createSellerPlanSchema>;

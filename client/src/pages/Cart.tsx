@@ -149,10 +149,10 @@ export default function Cart() {
     // FORMAT PRICE
     // =================================================
 
-    function formatPrice(
-        price: number | null | undefined
-    ) {
-
+   function formatPrice(
+    price: number | null | undefined,
+    currency: "NGN" | "USD" | "GBP" | "EUR" = "NGN"
+) {
         if (
             price === null ||
             price === undefined
@@ -163,14 +163,14 @@ export default function Cart() {
         }
 
 
-        return new Intl.NumberFormat(
-            "en-NG",
-            {
-                style: "currency",
-                currency: "NGN",
-                maximumFractionDigits: 0
-            }
-        ).format(price);
+   return new Intl.NumberFormat(
+    "en-NG",
+    {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 0
+    }
+).format(price);
 
     }
 
@@ -1011,8 +1011,9 @@ export default function Cart() {
 
                                                 {
                                                     formatPrice(
-                                                        price
-                                                    )
+    price,
+    item.listing.currency ?? "NGN"
+)
                                                 }
 
                                             </strong>
@@ -1162,9 +1163,10 @@ export default function Cart() {
                                             >
 
                                                 {
-                                                    formatPrice(
-                                                        itemTotal
-                                                    )
+                                                   formatPrice(
+    itemTotal,
+    item.listing.currency ?? "NGN"
+)
                                                 }
 
                                             </strong>
@@ -1346,26 +1348,25 @@ export default function Cart() {
                         </div>
 
 
-                        <button
-                            type="button"
-                            className="create-listing-button"
-                            style={{
-                                width:
-                                    "100%",
-                                justifyContent:
-                                    "center"
-                            }}
-                            onClick={() =>
-                                alert(
-                                    "Checkout will be connected next."
-                                )
-                            }
-                        >
+             <button
+    type="button"
+    className="create-listing-button"
+    style={{
+        width:
+            "100%",
+        justifyContent:
+            "center"
+    }}
+    onClick={() =>
+        navigate(
+            "/checkout"
+        )
+    }
+>
 
-                            Proceed to Checkout
+    Proceed to Checkout
 
-                        </button>
-
+</button>
 
                         <button
                             type="button"

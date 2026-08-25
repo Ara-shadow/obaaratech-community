@@ -13,7 +13,9 @@ import {
     ChevronRight,
     X,
     Maximize2,
-    ImageOff
+    ImageOff,
+    Heart,
+    Loader2
 } from "lucide-react";
 
 import {
@@ -25,15 +27,38 @@ import {
     addToCart
 } from "../api/cart";
 
+import {
+    addFavourite,
+    removeFavourite,
+    getFavourites
+} from "../api/favourites";
+
 import type {
     Listing
 } from "../types/listing";
 
 import ListingCard from "../components/ListingCard";
 
+import {
+    useAuth
+} from "../context/AuthContext";
+
+import {
+    getPublicSellerProfile
+} from "../api/sellers";
+
+import type {
+    PublicSellerProfile
+} from "../api/sellers";
+
+
 export default function ProductDetails() {
 
     const { id } = useParams();
+
+    const {
+        isAuthenticated
+    } = useAuth();
 
 
     const [
@@ -46,6 +71,11 @@ export default function ProductDetails() {
         relatedListings,
         setRelatedListings
     ] = useState<Listing[]>([]);
+
+    const [
+        sellerProfile,
+        setSellerProfile
+    ] = useState<PublicSellerProfile | null>(null);
 
 
     const [
@@ -70,21 +100,63 @@ export default function ProductDetails() {
         isLightboxOpen,
         setIsLightboxOpen
     ] = useState(false);
- 
+
+
+    // =====================================================
+    // CART STATE
+    // =====================================================
+
     const [
-    addingToCart,
-    setAddingToCart
-] = useState(false);
+        addingToCart,
+        setAddingToCart
+    ] = useState(false);
 
-const [
-    cartMessage,
-    setCartMessage
-] = useState("");
 
-const [
-    cartError,
-    setCartError
-] = useState("");
+    const [
+        cartMessage,
+        setCartMessage
+    ] = useState("");
+
+
+    const [
+        cartError,
+        setCartError
+    ] = useState("");
+
+
+    // =====================================================
+    // FAVOURITE STATE
+    // =====================================================
+
+    const [
+        isFavourite,
+        setIsFavourite
+    ] = useState(false);
+
+
+    const [
+        favouriteLoading,
+        setFavouriteLoading
+    ] = useState(false);
+
+
+    const [
+        favouriteMessage,
+        setFavouriteMessage
+    ] = useState("");
+
+
+    const [
+        favouriteError,
+        setFavouriteError
+    ] = useState("");
+
+
+    const [
+        favouriteLoaded,
+        setFavouriteLoaded
+    ] = useState(false);
+
 
     // =====================================================
     // LOAD LISTING
@@ -106,63 +178,82 @@ const [
         let mounted = true;
 
 
-        setLoading(true);
+        async function loadListing() {
 
-        setError("");
+            try {
+
+                setLoading(true);
+
+                setError("");
 
 
-        getListingById(id)
+               const data =
+    await getListingById(id!);
 
-            .then((data) => {
 
                 if (!mounted) {
                     return;
                 }
 
 
-            setListing(data);
+                setListing(data);
 
-setActiveImage(0);
+                setActiveImage(0);
 
 
-// Load related products
+                // =================================================
+                // LOAD RELATED LISTINGS
+                // =================================================
 
-getRelatedListings(data.id)
+                try {
 
-    .then((related)=>{
+                    const related =
+                        await getRelatedListings(
+                            data.id
+                        );
 
-        if(mounted){
 
-            setRelatedListings(
-                related
-            );
+                    if (mounted) {
 
-        }
+                        setRelatedListings(
+                            related
+                        );
 
-    })
+                    }
 
-    .catch((error)=>{
+                } catch (relatedError) {
 
-        console.error(
-            "Related listings error:",
-            error
-        );
+                    console.error(
+                        "Related listings error:",
+                        relatedError
+                    );
 
-    });
 
-                if (!mounted) {
-                    return;
+                    if (mounted) {
+
+                        setRelatedListings([]);
+
+                    }
+
                 }
 
+            } catch (requestError) {
 
-                setError(
-                    "Unable to load this product."
+                console.error(
+                    "Product loading error:",
+                    requestError
                 );
 
-            })
 
+                if (mounted) {
 
-            .finally(() => {
+                    setError(
+                        "Unable to load this product."
+                    );
+
+                }
+
+            } finally {
 
                 if (mounted) {
 
@@ -170,7 +261,12 @@ getRelatedListings(data.id)
 
                 }
 
-            });
+            }
+
+        }
+
+
+        loadListing();
 
 
         return () => {
@@ -181,6 +277,133 @@ getRelatedListings(data.id)
 
     }, [id]);
 
+    useEffect(() => {
+        const sellerId = listing?.owner?.id;
+
+        if (!sellerId) {
+            setSellerProfile(null);
+            return;
+        }
+
+        const publicSellerId = sellerId;
+
+        let mounted = true;
+
+        async function loadSellerProfile() {
+            try {
+                const data = await getPublicSellerProfile(publicSellerId);
+
+                if (mounted) {
+                    setSellerProfile(data);
+                }
+            } catch (requestError) {
+                console.error("Seller profile loading error:", requestError);
+
+                if (mounted) {
+                    setSellerProfile(null);
+                }
+            }
+        }
+
+        loadSellerProfile();
+
+        return () => {
+            mounted = false;
+        };
+    }, [listing?.owner?.id]);
+
+
+    // =====================================================
+    // LOAD FAVOURITE STATUS
+    // =====================================================
+
+    useEffect(() => {
+
+        if (
+            !isAuthenticated ||
+            !listing
+        ) {
+
+            setIsFavourite(false);
+
+            setFavouriteLoaded(false);
+
+            return;
+
+        }
+
+
+        let mounted = true;
+
+
+        async function loadFavouriteStatus() {
+
+            try {
+
+                setFavouriteLoaded(false);
+
+
+                const favourites =
+                    await getFavourites();
+
+
+                if (!mounted) {
+                    return;
+                }
+
+
+              const exists =
+    favourites.some(
+        favourite =>
+            favourite.id === listing?.id
+    );
+
+
+                setIsFavourite(
+                    exists
+                );
+
+            } catch (requestError) {
+
+                console.error(
+                    "Favourite status error:",
+                    requestError
+                );
+
+
+                if (mounted) {
+
+                    setIsFavourite(false);
+
+                }
+
+            } finally {
+
+                if (mounted) {
+
+                    setFavouriteLoaded(true);
+
+                }
+
+            }
+
+        }
+
+
+        loadFavouriteStatus();
+
+
+        return () => {
+
+            mounted = false;
+
+        };
+
+    }, [
+        isAuthenticated,
+        listing
+    ]);
+
 
     // =====================================================
     // LIGHTBOX KEYBOARD CONTROLS
@@ -188,8 +411,13 @@ getRelatedListings(data.id)
 
     useEffect(() => {
 
-        if (!isLightboxOpen || !listing?.images?.length) {
+        if (
+            !isLightboxOpen ||
+            !listing?.images?.length
+        ) {
+
             return;
+
         }
 
 
@@ -209,7 +437,7 @@ getRelatedListings(data.id)
             if (event.key === "ArrowLeft") {
 
                 setActiveImage(
-                    (current) =>
+                    current =>
                         current === 0
                             ? listing.images.length - 1
                             : current - 1
@@ -223,7 +451,7 @@ getRelatedListings(data.id)
             if (event.key === "ArrowRight") {
 
                 setActiveImage(
-                    (current) =>
+                    current =>
                         current === listing.images.length - 1
                             ? 0
                             : current + 1
@@ -270,7 +498,8 @@ getRelatedListings(data.id)
             document.body.style.overflow;
 
 
-        document.body.style.overflow = "hidden";
+        document.body.style.overflow =
+            "hidden";
 
 
         return () => {
@@ -310,7 +539,10 @@ getRelatedListings(data.id)
     // ERROR
     // =====================================================
 
-    if (error || !listing) {
+    if (
+        error ||
+        !listing
+    ) {
 
         return (
 
@@ -368,11 +600,19 @@ getRelatedListings(data.id)
             : null;
 
 
-    const formattedPrice =
-        listing.price !== null &&
-        listing.price !== undefined
-            ? `₦${listing.price.toLocaleString()}`
-            : "Contact Seller";
+ const formattedPrice =
+    listing.price !== null &&
+    listing.price !== undefined
+        ? new Intl.NumberFormat(
+            "en-NG",
+            {
+                style: "currency",
+                currency:
+                    listing.currency ?? "NGN",
+                maximumFractionDigits: 2
+            }
+        ).format(listing.price)
+        : "Contact Seller";
 
 
     const availabilityText =
@@ -381,65 +621,88 @@ getRelatedListings(data.id)
             : "Currently unavailable";
 
 
+    // =====================================================
+    // CONDITION LABELS
+    // =====================================================
+
+    const conditionLabels:
+        Record<string, string> = {
+
+        NEW:
+            "New",
+
+        USED:
+            "Used",
+
+        UK_USED:
+            "UK Used",
+
+        NIGERIA_USED:
+            "Nigeria Used",
+
+        BRAND_NEW:
+            "Brand New",
+
+        FOREIGN_USED:
+            "Foreign Used",
+
+        NEW_BUILD:
+            "New Build",
+
+        OLD_BUILDING:
+            "Old Building",
+
+        RENOVATED:
+            "Renovated"
+
+    };
 
 
-const conditionLabels: Record<string, string> = {
-
-    NEW:
-        "New",
-
-    USED:
-        "Used",
-
-    UK_USED:
-        "UK Used",
-
-    NIGERIA_USED:
-        "Nigeria Used",
-
-    BRAND_NEW:
-        "Brand New",
-
-    FOREIGN_USED:
-        "Foreign Used",
-
-    NEW_BUILD:
-        "New Build",
-
-    OLD_BUILDING:
-        "Old Building",
-
-    RENOVATED:
-        "Renovated"
-
-};
-
-
-const conditionText =
-    listing.condition
-        ? conditionLabels[listing.condition] ||
-          listing.condition
-        : "Not specified";
+    const conditionText =
+        listing.condition
+            ? conditionLabels[
+                listing.condition
+            ] ||
+            listing.condition
+            : "Not specified";
 
 
     const categoryText =
         listing.category?.name ||
         "Uncategorized";
 
-        // =====================================================
-// DYNAMIC LISTING DETAILS
-// =====================================================
 
-const listingDetails =
-    listing.details ?? {};
+    // =====================================================
+    // DYNAMIC LISTING DETAILS
+    // =====================================================
+
+    const listingDetails =
+        listing.details ?? {};
 
 
-const detailEntries =
-    Object.entries(listingDetails);
+    const detailEntries =
+        Object.entries(
+            listingDetails
+        );
+
 
     const sellerName =
         listing.owner?.name ||
         "Seller";
+
+    const businessStatus = sellerProfile?.businessStatus;
+
+    function formatBusinessTime(time: string | null | undefined) {
+        if (!time) {
+            return "Closed";
+        }
+
+        const [hours, minutes] = time.split(":").map(Number);
+        const suffix = hours >= 12 ? "PM" : "AM";
+        const displayHour = hours % 12 || 12;
+
+        return `${displayHour}:${String(minutes).padStart(2, "0")} ${suffix}`;
+    }
 
 
     // =====================================================
@@ -457,7 +720,10 @@ const detailEntries =
     const averageRating =
         reviewCount > 0
             ? reviews.reduce(
-                (sum, review) =>
+                (
+                    sum,
+                    review
+                ) =>
                     sum + review.rating,
                 0
             ) / reviewCount
@@ -465,7 +731,9 @@ const detailEntries =
 
 
     const roundedRating =
-        Math.round(averageRating);
+        Math.round(
+            averageRating
+        );
 
 
     // =====================================================
@@ -480,7 +748,7 @@ const detailEntries =
 
 
         setActiveImage(
-            (current) =>
+            current =>
                 current === 0
                     ? imageCount - 1
                     : current - 1
@@ -497,7 +765,7 @@ const detailEntries =
 
 
         setActiveImage(
-            (current) =>
+            current =>
                 current === imageCount - 1
                     ? 0
                     : current + 1
@@ -531,16 +799,7 @@ const detailEntries =
 
     function contactSeller() {
 
-        const currentListing = listing;
-
-        if (!currentListing) {
-
-            return;
-
-        }
-
-
-        if (!currentListing.owner?.phone) {
+     if (!listing?.owner?.phone) {
 
             alert(
                 "Seller contact information is not available."
@@ -551,15 +810,18 @@ const detailEntries =
         }
 
 
-        const phone =
-            currentListing.owner.phone
+       const phone =
+    listing.owner.phone
                 .replace(/\D/g, "")
-                .replace(/^0/, "234");
+                .replace(
+                    /^0/,
+                    "234"
+                );
 
 
         const message =
             encodeURIComponent(
-                `Hello, I am interested in your Obaaratech Marketplace listing: ${currentListing.title}`
+                `Hello, I am interested in your Obaaratech Marketplace listing: ${listing.title}`
             );
 
 
@@ -570,6 +832,7 @@ const detailEntries =
         );
 
     }
+
 
     // =====================================================
     // BUY NOW
@@ -583,61 +846,22 @@ const detailEntries =
 
     }
 
-// =====================================================
-// ADD TO CART
-// =====================================================
 
-async function handleAddToCart() {
+    // =====================================================
+    // ADD TO CART
+    // =====================================================
 
-    if (!listing) {
-        return;
-    }
+    async function handleAddToCart() {
 
-
-    if (!listing.available) {
-
-        setCartError(
-            "This listing is currently unavailable."
-        );
-
-        return;
-
-    }
+        if (!listing) {
+            return;
+        }
 
 
-    try {
-
-        setAddingToCart(true);
-
-        setCartMessage("");
-
-        setCartError("");
-
-
-        await addToCart(
-            listing.id
-        );
-
-
-        setCartMessage(
-            "Added to cart successfully."
-        );
-
-
-    } catch (requestError: any) {
-
-        console.error(
-            "Add to cart error:",
-            requestError
-        );
-
-
-        if (
-            requestError?.response?.status === 401
-        ) {
+        if (!listing.available) {
 
             setCartError(
-                "Please log in to add items to your cart."
+                "This listing is currently unavailable."
             );
 
             return;
@@ -645,18 +869,164 @@ async function handleAddToCart() {
         }
 
 
-        setCartError(
-            requestError?.response?.data?.message ||
-            "Unable to add this item to your cart."
-        );
+        try {
 
-    } finally {
+            setAddingToCart(true);
 
-        setAddingToCart(false);
+            setCartMessage("");
+
+            setCartError("");
+
+
+            await addToCart(
+                listing.id
+            );
+
+
+            setCartMessage(
+                "Added to cart successfully."
+            );
+
+        } catch (requestError: any) {
+
+            console.error(
+                "Add to cart error:",
+                requestError
+            );
+
+
+            if (
+                requestError?.response?.status === 401
+            ) {
+
+                setCartError(
+                    "Please log in to add items to your cart."
+                );
+
+                return;
+
+            }
+
+
+            setCartError(
+                requestError?.response?.data?.message ||
+                "Unable to add this item to your cart."
+            );
+
+        } finally {
+
+            setAddingToCart(false);
+
+        }
 
     }
 
-}
+
+    // =====================================================
+    // TOGGLE FAVOURITE
+    // =====================================================
+
+    async function handleToggleFavourite() {
+
+        if (!listing) {
+            return;
+        }
+
+
+        setFavouriteMessage("");
+
+        setFavouriteError("");
+
+
+        // =================================================
+        // LOGIN REQUIRED
+        // =================================================
+
+        if (!isAuthenticated) {
+
+            setFavouriteError(
+                "Please log in to save favourites."
+            );
+
+            return;
+
+        }
+
+
+        if (favouriteLoading) {
+            return;
+        }
+
+
+        try {
+
+            setFavouriteLoading(true);
+
+
+            if (isFavourite) {
+
+                await removeFavourite(
+                    listing.id
+                );
+
+
+                setIsFavourite(false);
+
+
+                setFavouriteMessage(
+                    "Removed from favourites."
+                );
+
+            } else {
+
+                await addFavourite(
+                    listing.id
+                );
+
+
+                setIsFavourite(true);
+
+
+                setFavouriteMessage(
+                    "Added to favourites."
+                );
+
+            }
+
+        } catch (requestError: any) {
+
+            console.error(
+                "Favourite error:",
+                requestError
+            );
+
+
+            if (
+                requestError?.response?.status === 401
+            ) {
+
+                setFavouriteError(
+                    "Your session has expired. Please log in again."
+                );
+
+                return;
+
+            }
+
+
+            setFavouriteError(
+                requestError?.response?.data?.message ||
+                "Unable to update favourites. Please try again."
+            );
+
+        } finally {
+
+            setFavouriteLoading(false);
+
+        }
+
+    }
+
 
     // =====================================================
     // PRODUCT PAGE
@@ -697,173 +1067,278 @@ async function handleAddToCart() {
             <section className="product-container">
 
 
-             {/* =================================================
-    IMAGE GALLERY
-================================================= */}
+                {/* =================================================
+                    IMAGE GALLERY
+                ================================================= */}
 
-<div className="product-gallery">
+                <div className="product-gallery">
 
-    <div className="main-product-image">
+                    <div className="main-product-image">
 
-        {activeImageUrl ? (
-            <>
-                <img
-                    src={activeImageUrl}
-                    alt={listing.title}
-                />
+                        {activeImageUrl ? (
 
-                {hasImages && (
-                    <div className="image-counter">
-                        {safeImageIndex + 1}
-                        {" / "}
-                        {imageCount}
+                            <>
+
+                                <img
+                                    src={activeImageUrl}
+                                    alt={listing.title}
+                                />
+
+
+                                {hasImages && (
+
+                                    <div className="image-counter">
+
+                                        {safeImageIndex + 1}
+                                        {" / "}
+                                        {imageCount}
+
+                                    </div>
+
+                                )}
+
+
+                                <button
+                                    type="button"
+                                    className="image-expand-button"
+                                    onClick={() =>
+                                        setIsLightboxOpen(true)
+                                    }
+                                    aria-label="View product image fullscreen"
+                                >
+
+                                    <Maximize2
+                                        size={20}
+                                    />
+
+                                </button>
+
+
+                                {imageCount > 1 && (
+
+                                    <button
+                                        type="button"
+                                        className="gallery-nav gallery-prev"
+                                        onClick={
+                                            showPreviousImage
+                                        }
+                                        aria-label="Previous product image"
+                                    >
+
+                                        <ChevronLeft
+                                            size={28}
+                                        />
+
+                                    </button>
+
+                                )}
+
+
+                                {imageCount > 1 && (
+
+                                    <button
+                                        type="button"
+                                        className="gallery-nav gallery-next"
+                                        onClick={
+                                            showNextImage
+                                        }
+                                        aria-label="Next product image"
+                                    >
+
+                                        <ChevronRight
+                                            size={28}
+                                        />
+
+                                    </button>
+
+                                )}
+
+                            </>
+
+                        ) : (
+
+                            <div className="no-image">
+
+                                <ImageOff
+                                    size={52}
+                                    strokeWidth={1.5}
+                                />
+
+
+                                <strong>
+                                    No Image Available
+                                </strong>
+
+
+                                <span>
+                                    The seller has not uploaded
+                                    a product image yet.
+                                </span>
+
+                            </div>
+
+                        )}
+
                     </div>
-                )}
 
-                <button
-                    type="button"
-                    className="image-expand-button"
-                    onClick={() =>
-                        setIsLightboxOpen(true)
-                    }
-                    aria-label="View product image fullscreen"
-                >
-                    <Maximize2 size={20} />
-                </button>
 
-                {imageCount > 1 && (
-                    <button
-                        type="button"
-                        className="gallery-nav gallery-prev"
-                        onClick={showPreviousImage}
-                        aria-label="Previous product image"
+                    {/* =================================================
+                        THUMBNAILS
+                    ================================================= */}
+
+                    {hasImages && (
+
+                        <div
+                            className="thumbnail-list"
+                            aria-label="Product image thumbnails"
+                        >
+
+                            {listing.images.map(
+                                (
+                                    image,
+                                    index
+                                ) => (
+
+                                    <button
+                                        type="button"
+                                        key={image.id}
+                                        className={
+                                            activeImage === index
+                                                ? "thumbnail-button active"
+                                                : "thumbnail-button"
+                                        }
+                                        onClick={() =>
+                                            selectImage(index)
+                                        }
+                                        aria-label={
+                                            `View ${listing.title} image ${index + 1}`
+                                        }
+                                    >
+
+                                        <img
+                                            className="thumbnail"
+                                            src={image.url}
+                                            alt={
+                                                `${listing.title} ${index + 1}`
+                                            }
+                                        />
+
+                                    </button>
+
+                                )
+                            )}
+
+                        </div>
+
+                    )}
+
+
+                    {imageCount > 1 && (
+
+                        <p className="gallery-hint">
+
+                            Click an image to enlarge
+                            {" • "}
+                            Use ← → to navigate
+
+                        </p>
+
+                    )}
+
+                </div>
+
+
+                {/* =================================================
+                    PRODUCT INFORMATION
+                ================================================= */}
+
+                <div className="product-information">
+
+
+                    {/* =================================================
+                        BADGE
+                    ================================================= */}
+
+                    <div className="product-badge">
+
+                        {listing.featured
+                            ? "Featured Listing"
+                            : "Marketplace Listing"}
+
+                    </div>
+
+
+                    {/* =================================================
+                        TITLE + FAVOURITE
+                    ================================================= */}
+
+                    <div
+                        className="product-title-row"
+                        style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            justifyContent: "space-between",
+                            gap: "16px"
+                        }}
                     >
-                        <ChevronLeft size={28} />
-                    </button>
-                )}
 
-                {imageCount > 1 && (
-                    <button
-                        type="button"
-                        className="gallery-nav gallery-next"
-                        onClick={showNextImage}
-                        aria-label="Next product image"
-                    >
-                        <ChevronRight size={28} />
-                    </button>
-                )}
-            </>
-        ) : (
-            <div className="no-image">
-
-                <ImageOff
-                    size={52}
-                    strokeWidth={1.5}
-                />
-
-                <strong>
-                    No Image Available
-                </strong>
-
-                <span>
-                    The seller has not uploaded
-                    a product image yet.
-                </span>
-
-            </div>
-        )}
-
-    </div>
+                        <h1>
+                            {listing.title}
+                        </h1>
 
 
-    {/* =================================================
-        THUMBNAILS
-    ================================================= */}
+                        <button
+                            type="button"
+                            className={
+                                isFavourite
+                                    ? "favourite-button active"
+                                    : "favourite-button"
+                            }
+                            onClick={
+                                handleToggleFavourite
+                            }
+                            disabled={
+                                favouriteLoading ||
+                                (
+                                    isAuthenticated &&
+                                    !favouriteLoaded
+                                )
+                            }
+                            aria-label={
+                                isFavourite
+                                    ? "Remove from favourites"
+                                    : "Add to favourites"
+                            }
+                            title={
+                                isFavourite
+                                    ? "Remove from favourites"
+                                    : "Add to favourites"
+                            }
+                        >
 
-    {hasImages && (
-        <div
-            className="thumbnail-list"
-            aria-label="Product image thumbnails"
-        >
+                            {favouriteLoading ? (
 
-            {listing.images.map((image, index) => (
+                                <Loader2
+                                    size={22}
+                                    className="spinning"
+                                />
 
-                <button
-                    type="button"
-                    key={image.id}
-                    className={
-                        activeImage === index
-                            ? "thumbnail-button active"
-                            : "thumbnail-button"
-                    }
-                    onClick={() =>
-                        selectImage(index)
-                    }
-                    aria-label={
-                        `View ${listing.title} image ${index + 1}`
-                    }
-                >
+                            ) : (
 
-                    <img
-                        className="thumbnail"
-                        src={image.url}
-                        alt={
-                            `${listing.title} ${index + 1}`
-                        }
-                    />
+                                <Heart
+                                    size={22}
+                                    fill={
+                                        isFavourite
+                                            ? "currentColor"
+                                            : "none"
+                                    }
+                                />
 
-                </button>
+                            )}
 
-            ))}
+                        </button>
 
-        </div>
-    )}
-
-
-    {/* =================================================
-        GALLERY HELP TEXT
-    ================================================= */}
-
-    {imageCount > 1 && (
-        <p className="gallery-hint">
-
-            Click an image to enlarge
-            {" • "}
-            Use ← → to navigate
-
-        </p>
-    )}
-
-</div>
-
-
-{/* =================================================
-    PRODUCT INFORMATION
-================================================= */}
-
-<div className="product-information">
-
-
-    {/* =================================================
-        BADGE
-    ================================================= */}
-
-    <div className="product-badge">
-
-        {listing.featured
-            ? "Featured Listing"
-            : "Marketplace Listing"}
-
-    </div>
-
-
-    {/* =================================================
-        TITLE
-    ================================================= */}
-
-    <h1>
-        {listing.title}
-    </h1>
+                    </div>
 
 
                     {/* =================================================
@@ -893,13 +1368,13 @@ async function handleAddToCart() {
 
                                 (
                                 {reviewCount}
-
                                 {" "}
 
-                                {reviewCount === 1
-                                    ? "review"
-                                    : "reviews"}
-
+                                {
+                                    reviewCount === 1
+                                        ? "review"
+                                        : "reviews"
+                                }
                                 )
 
                             </span>
@@ -978,7 +1453,7 @@ async function handleAddToCart() {
                         <div className="product-detail-row">
 
                             <span className="product-detail-icon">
-                                🗷
+                                🏷️
                             </span>
 
 
@@ -1056,100 +1531,181 @@ async function handleAddToCart() {
                     {/* =================================================
                         ACTION BUTTONS
                     ================================================= */}
-<div className="action-buttons">
+
+                    <div className="action-buttons">
 
 
-    <button
-        type="button"
-        className="buy-button"
-        onClick={handleAddToCart}
-        disabled={
-            !listing.available ||
-            addingToCart
-        }
-    >
+                        <button
+                            type="button"
+                            className="buy-button"
+                            onClick={
+                                handleAddToCart
+                            }
+                            disabled={
+                                !listing.available ||
+                                addingToCart
+                            }
+                        >
 
-        {addingToCart
-            ? "Adding..."
-            : "🛒 Add to Cart"}
+                            {addingToCart
+                                ? "Adding..."
+                                : "🛒 Add to Cart"}
 
-    </button>
-
-
-    <button
-        type="button"
-        className="buy-button"
-        onClick={handleBuyNow}
-        disabled={!listing.available}
-    >
-
-        ⚡ Buy Now
-
-    </button>
+                        </button>
 
 
-    <button
-        type="button"
-        className="chat-button"
-        onClick={contactSeller}
-    >
+                        <button
+                            type="button"
+                            className="buy-button"
+                            onClick={
+                                handleBuyNow
+                            }
+                            disabled={
+                                !listing.available
+                            }
+                        >
 
-        💬 Contact Seller
+                            ⚡ Buy Now
 
-    </button>
-
-
-</div>
-
-
-{cartMessage && (
-
-    <div
-        className="listing-form-message success"
-        role="status"
-        style={{
-            marginTop: "12px"
-        }}
-    >
-
-        {cartMessage}
-
-        {" "}
-
-        <Link to="/cart">
-            View Cart
-        </Link>
-
-    </div>
-
-)}
+                        </button>
 
 
-{cartError && (
+                        <button
+                            type="button"
+                            className="chat-button"
+                            onClick={
+                                contactSeller
+                            }
+                        >
 
-    <div
-        className="listing-form-message error"
-        role="alert"
-        style={{
-            marginTop: "12px"
-        }}
-    >
+                            💬 Contact Seller
 
-        {cartError}
+                        </button>
 
-        {cartError.includes("log in") && (
-            <>
-                {" "}
+                    </div>
 
-                <Link to="/login">
-                    Login
-                </Link>
-            </>
-        )}
 
-    </div>
+                    {/* =================================================
+                        FAVOURITE MESSAGE
+                    ================================================= */}
 
-)}
+                    {favouriteMessage && (
+
+                        <div
+                            className="listing-form-message success"
+                            role="status"
+                            style={{
+                                marginTop: "12px"
+                            }}
+                        >
+
+                            {favouriteMessage}
+
+
+                            {" "}
+
+
+                            {isFavourite && (
+
+                                <Link to="/favourites">
+                                    View Favourites
+                                </Link>
+
+                            )}
+
+                        </div>
+
+                    )}
+
+
+                    {favouriteError && (
+
+                        <div
+                            className="listing-form-message error"
+                            role="alert"
+                            style={{
+                                marginTop: "12px"
+                            }}
+                        >
+
+                            {favouriteError}
+
+
+                            {!isAuthenticated && (
+
+                                <>
+                                    {" "}
+
+                                    <Link to="/login">
+                                        Login
+                                    </Link>
+                                </>
+
+                            )}
+
+                        </div>
+
+                    )}
+
+
+                    {/* =================================================
+                        CART MESSAGE
+                    ================================================= */}
+
+                    {cartMessage && (
+
+                        <div
+                            className="listing-form-message success"
+                            role="status"
+                            style={{
+                                marginTop: "12px"
+                            }}
+                        >
+
+                            {cartMessage}
+
+                            {" "}
+
+                            <Link to="/cart">
+                                View Cart
+                            </Link>
+
+                        </div>
+
+                    )}
+
+
+                    {cartError && (
+
+                        <div
+                            className="listing-form-message error"
+                            role="alert"
+                            style={{
+                                marginTop: "12px"
+                            }}
+                        >
+
+                            {cartError}
+
+
+                            {cartError.includes(
+                                "log in"
+                            ) && (
+
+                                <>
+                                    {" "}
+
+                                    <Link to="/login">
+                                        Login
+                                    </Link>
+                                </>
+
+                            )}
+
+                        </div>
+
+                    )}
+
 
                     {/* =================================================
                         SELLER SUMMARY
@@ -1189,8 +1745,13 @@ async function handleAddToCart() {
 
                             )}
 
-                        </div>
+                            {businessStatus && (
+                                <span style={{ color: businessStatus.isOpen ? "#15803d" : "#b91c1c", fontWeight: 700 }}>
+                                    {businessStatus.isOpen ? "● Open" : "● Closed"} · {businessStatus.message}
+                                </span>
+                            )}
 
+                        </div>
 
                     </div>
 
@@ -1219,55 +1780,62 @@ async function handleAddToCart() {
 
             </section>
 
-        {/* =================================================
-    DYNAMIC DETAILS
-================================================= */}
 
-{detailEntries.length > 0 && (
+            {/* =================================================
+                DYNAMIC DETAILS
+            ================================================= */}
 
-    <section className="product-details-card">
+            {detailEntries.length > 0 && (
 
-        <h3>
-            Listing Details
-        </h3>
+                <section className="product-details-card">
 
-
-        <div className="details-grid">
-
-            {detailEntries.map(
-                ([key, value]) => (
-
-                    <div
-                        className="detail-item"
-                        key={key}
-                    >
-
-                        <span>
-                            {key
-                                .replace(/([A-Z])/g, " $1")
-                                .replace(/^./,
-                                    (char) =>
-                                        char.toUpperCase()
-                                )
-                            }
-                        </span>
+                    <h3>
+                        Listing Details
+                    </h3>
 
 
-                        <strong>
-                            {String(value)}
-                        </strong>
+                    <div className="details-grid">
+
+                        {detailEntries.map(
+                            (
+                                [key, value]
+                            ) => (
+
+                                <div
+                                    className="detail-item"
+                                    key={key}
+                                >
+
+                                    <span>
+
+                                        {key
+                                            .replace(
+                                                /([A-Z])/g,
+                                                " $1"
+                                            )
+                                            .replace(
+                                                /^./,
+                                                char =>
+                                                    char.toUpperCase()
+                                            )}
+
+                                    </span>
+
+
+                                    <strong>
+                                        {String(value)}
+                                    </strong>
+
+                                </div>
+
+                            )
+                        )}
 
                     </div>
 
-                )
+                </section>
+
             )}
-
-        </div>
-
-    </section>
-
-)}
-
 
 
             {/* =================================================
@@ -1333,6 +1901,22 @@ async function handleAddToCart() {
 
                         )}
 
+                        {businessStatus && (
+                            <p style={{ color: businessStatus.isOpen ? "#15803d" : "#b91c1c", fontWeight: 700 }}>
+                                {businessStatus.isOpen ? "● Open" : "● Closed"} · {businessStatus.message}
+                            </p>
+                        )}
+
+                        {sellerProfile?.businessHours?.length === 7 && (
+                            <div style={{ marginTop: "14px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "5px 16px", fontSize: "14px" }}>
+                                {sellerProfile.businessHours.map(hour => (
+                                    <span key={hour.dayOfWeek}>
+                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][hour.dayOfWeek]}: {hour.isOpen ? `${formatBusinessTime(hour.openingTime)}–${formatBusinessTime(hour.closingTime)}` : "Closed"}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
                     </div>
 
                 </div>
@@ -1341,7 +1925,9 @@ async function handleAddToCart() {
                 <button
                     type="button"
                     className="seller-button"
-                    onClick={contactSeller}
+                    onClick={
+                        contactSeller
+                    }
                 >
 
                     💬 Contact Seller
@@ -1369,20 +1955,20 @@ async function handleAddToCart() {
                     >
 
 
-                        {/* =========================
-                           CLOSE
-                        ========================= */}
-
                         <button
                             type="button"
                             className="lightbox-close"
-                            onClick={(event) => {
+                            onClick={
+                                event => {
 
-                                event.stopPropagation();
+                                    event.stopPropagation();
 
-                                setIsLightboxOpen(false);
+                                    setIsLightboxOpen(
+                                        false
+                                    );
 
-                            }}
+                                }
+                            }
                             aria-label="Close image viewer"
                         >
 
@@ -1393,14 +1979,11 @@ async function handleAddToCart() {
                         </button>
 
 
-                        {/* =========================
-                           IMAGE
-                        ========================= */}
-
                         <div
                             className="lightbox-content"
-                            onClick={(event) =>
-                                event.stopPropagation()
+                            onClick={
+                                event =>
+                                    event.stopPropagation()
                             }
                         >
 
@@ -1410,10 +1993,6 @@ async function handleAddToCart() {
                                 className="lightbox-image"
                             />
 
-
-                            {/* =========================
-                               COUNTER
-                            ========================= */}
 
                             {imageCount > 1 && (
 
@@ -1427,10 +2006,6 @@ async function handleAddToCart() {
 
                             )}
 
-
-                            {/* =========================
-                               PREVIOUS
-                            ========================= */}
 
                             {imageCount > 1 && (
 
@@ -1451,10 +2026,6 @@ async function handleAddToCart() {
 
                             )}
 
-
-                            {/* =========================
-                               NEXT
-                            ========================= */}
 
                             {imageCount > 1 && (
 
@@ -1480,43 +2051,42 @@ async function handleAddToCart() {
                     </div>
 
                 )}
-                {/* =================================================
-    RELATED PRODUCTS
-================================================= */}
-
-{
-    relatedListings.length > 0 && (
-
-        <section className="related-products">
-
-            <h2>
-                You may also like
-            </h2>
 
 
-            <div className="related-products-grid">
+            {/* =================================================
+                RELATED PRODUCTS
+            ================================================= */}
 
-                {
-                    relatedListings.map((item)=>(
+            {relatedListings.length > 0 && (
 
-                        <ListingCard
-    key={item.id}
-    listing={item}
-/>
+                <section className="related-products">
 
-                    ))
-                }
+                    <h2>
+                        You may also like
+                    </h2>
 
-            </div>
 
-        </section>
+                    <div className="related-products-grid">
 
-    )
-}
+                        {relatedListings.map(
+                            item => (
+
+                                <ListingCard
+                                    key={item.id}
+                                    listing={item}
+                                />
+
+                            )
+                        )}
+
+                    </div>
+
+                </section>
+
+            )}
 
         </main>
 
     );
 
 }
-

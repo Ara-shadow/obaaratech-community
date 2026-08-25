@@ -1,79 +1,262 @@
 import type {
-  FastifyRequest,
-  FastifyReply
+    FastifyRequest,
+    FastifyReply
 } from "fastify";
 
 import {
-  submitPayment,
-  fetchMyPayments,
-  fetchPayment,
-  fetchAllPayments,
-  approveSellerPayment,
-  rejectSellerPayment
+    initializePaymentSchema,
+    verifyPaymentSchema,
+    submitPaymentSchema
+} from "./payment.schema.js";
+
+import {
+    initializePayment,
+    verifyPayment,
+    submitPayment,
+    fetchMyPayments,
+    fetchPayment,
+    fetchAllPayments,
+    approveSellerPayment,
+    rejectSellerPayment
 } from "./payment.service.js";
 
 
 // =====================================
-// SUBMIT PAYMENT
+// INITIALIZE PAYMENT
+// =====================================
+
+export async function initializePaymentController(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+
+    try {
+
+        const user =
+            request.user as {
+                id: string;
+            };
+
+
+        if (!user?.id) {
+
+            return reply
+                .code(401)
+                .send({
+
+                    success: false,
+
+                    message:
+                        "Unauthorized"
+
+                });
+
+        }
+
+
+        const data =
+            initializePaymentSchema.parse(
+                request.body
+            );
+
+
+        const result =
+            await initializePayment(
+
+                user.id,
+
+                data.planId,
+
+                data.paymentMethod,
+
+                data.callbackUrl
+
+            );
+
+
+        return reply
+            .code(201)
+            .send({
+
+                ...result
+
+            });
+
+    } catch (error: any) {
+
+        return reply
+            .code(400)
+            .send({
+
+                success: false,
+
+                message:
+                    error.message
+
+            });
+
+    }
+
+}
+
+
+// =====================================
+// VERIFY PAYMENT
+// =====================================
+
+export async function verifyPaymentController(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+
+    try {
+
+        const user =
+            request.user as {
+                id: string;
+            };
+
+
+        if (!user?.id) {
+
+            return reply
+                .code(401)
+                .send({
+
+                    success: false,
+
+                    message:
+                        "Unauthorized"
+
+                });
+
+        }
+
+
+        const data =
+            verifyPaymentSchema.parse(
+                request.body
+            );
+
+
+        const result =
+            await verifyPayment(
+
+                user.id,
+
+                data.paymentId,
+
+                data.reference
+
+            );
+
+
+      return reply.send({
+    ...result
+});
+
+    } catch (error: any) {
+
+        return reply
+            .code(400)
+            .send({
+
+                success: false,
+
+                message:
+                    error.message
+
+            });
+
+    }
+
+}
+
+
+// =====================================
+// SUBMIT MANUAL PAYMENT
 // =====================================
 
 export async function createPaymentController(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
 
-  try {
+    try {
 
-    const user = request.user as {
-      id: string;
-    };
-
-
-    const body = request.body as {
-      planId: string;
-      amount: number;
-      reference?: string;
-      proofUrl?: string;
-    };
+        const user =
+            request.user as {
+                id: string;
+            };
 
 
-    const payment =
-      await submitPayment(
-        user.id,
-        body.planId,
-        body.amount,
-        body.reference,
-        body.proofUrl
-      );
+        if (!user?.id) {
+
+            return reply
+                .code(401)
+                .send({
+
+                    success: false,
+
+                    message:
+                        "Unauthorized"
+
+                });
+
+        }
 
 
-    return reply
-      .code(201)
-      .send({
+        const body =
+            submitPaymentSchema.parse(
+                request.body
+            );
 
-        success: true,
 
-        message:
-          "Payment submitted successfully",
+        const payment =
+            await submitPayment(
 
-        payment
+                user.id,
 
-      });
+                body.planId,
 
-  } catch (error: any) {
+                body.amount,
 
-    return reply
-      .code(400)
-      .send({
+                "BANK_TRANSFER",
 
-        success: false,
+                body.reference,
 
-        message:
-          error.message
+                body.proofUrl
 
-      });
+            );
 
-  }
+
+        return reply
+            .code(201)
+            .send({
+
+                success: true,
+
+                message:
+                    "Payment submitted successfully",
+
+                payment
+
+            });
+
+    } catch (error: any) {
+
+        return reply
+            .code(400)
+            .send({
+
+                success: false,
+
+                message:
+                    error.message
+
+            });
+
+    }
 
 }
 
@@ -83,45 +266,46 @@ export async function createPaymentController(
 // =====================================
 
 export async function myPaymentsController(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
 
-  try {
+    try {
 
-    const user = request.user as {
-      id: string;
-    };
-
-
-    const payments =
-      await fetchMyPayments(
-        user.id
-      );
+        const user =
+            request.user as {
+                id: string;
+            };
 
 
-    return reply.send({
+        const payments =
+            await fetchMyPayments(
+                user.id
+            );
 
-      success: true,
 
-      payments
+        return reply.send({
 
-    });
+            success: true,
 
-  } catch (error: any) {
+            payments
 
-    return reply
-      .code(400)
-      .send({
+        });
 
-        success: false,
+    } catch (error: any) {
 
-        message:
-          error.message
+        return reply
+            .code(400)
+            .send({
 
-      });
+                success: false,
 
-  }
+                message:
+                    error.message
+
+            });
+
+    }
 
 }
 
@@ -131,62 +315,90 @@ export async function myPaymentsController(
 // =====================================
 
 export async function paymentByIdController(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
 
-  try {
+    try {
 
-    const params =
-      request.params as {
-        id: string;
-      };
-
-
-    const payment =
-      await fetchPayment(
-        params.id
-      );
+        const params =
+            request.params as {
+                id: string;
+            };
 
 
-    if (!payment) {
+        const payment =
+            await fetchPayment(
+                params.id
+            );
 
-      return reply
-        .code(404)
-        .send({
 
-          success: false,
+        if (!payment) {
 
-          message:
-            "Payment not found"
+            return reply
+                .code(404)
+                .send({
+
+                    success: false,
+
+                    message:
+                        "Payment not found"
+
+                });
+
+        }
+
+
+        // Do not expose another user's
+        // payment record.
+
+        const user =
+            request.user as {
+                id: string;
+            };
+
+
+        if (
+            payment.userId !==
+            user.id
+        ) {
+
+            return reply
+                .code(403)
+                .send({
+
+                    success: false,
+
+                    message:
+                        "Forbidden"
+
+                });
+
+        }
+
+
+        return reply.send({
+
+            success: true,
+
+            payment
 
         });
 
+    } catch (error: any) {
+
+        return reply
+            .code(400)
+            .send({
+
+                success: false,
+
+                message:
+                    error.message
+
+            });
+
     }
-
-
-    return reply.send({
-
-      success: true,
-
-      payment
-
-    });
-
-  } catch (error: any) {
-
-    return reply
-      .code(400)
-      .send({
-
-        success: false,
-
-        message:
-          error.message
-
-      });
-
-  }
 
 }
 
@@ -196,38 +408,38 @@ export async function paymentByIdController(
 // =====================================
 
 export async function allPaymentsController(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
 
-  try {
+    try {
 
-    const payments =
-      await fetchAllPayments();
+        const payments =
+            await fetchAllPayments();
 
 
-    return reply.send({
+        return reply.send({
 
-      success: true,
+            success: true,
 
-      payments
+            payments
 
-    });
+        });
 
-  } catch (error: any) {
+    } catch (error: any) {
 
-    return reply
-      .code(400)
-      .send({
+        return reply
+            .code(400)
+            .send({
 
-        success: false,
+                success: false,
 
-        message:
-          error.message
+                message:
+                    error.message
 
-      });
+            });
 
-  }
+    }
 
 }
 
@@ -237,56 +449,59 @@ export async function allPaymentsController(
 // =====================================
 
 export async function approvePaymentController(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
 
-  try {
+    try {
 
-    const params =
-      request.params as {
-        id: string;
-      };
-
-
-    const body =
-      request.body as {
-        adminNote?: string;
-      };
+        const params =
+            request.params as {
+                id: string;
+            };
 
 
-    const result =
-      await approveSellerPayment(
-        params.id,
-        body?.adminNote
-      );
+        const body =
+            request.body as {
+                adminNote?: string;
+            };
 
 
-    return reply.send({
+        const result =
+            await approveSellerPayment(
 
-      success: true,
+                params.id,
 
-      message:
-        "Payment approved and subscription activated",
+                body?.adminNote
 
-      ...result
+            );
 
-    });
 
-  } catch (error: any) {
+        return reply.send({
 
-    return reply
-      .code(400)
-      .send({
+            success: true,
 
-        success: false,
+            message:
+                "Payment approved and subscription activated",
 
-        message:
-          error.message
+            ...result
 
-      });
+        });
 
-  }
+    } catch (error: any) {
+
+        return reply
+            .code(400)
+            .send({
+
+                success: false,
+
+                message:
+                    error.message
+
+            });
+
+    }
 
 }
 
@@ -296,55 +511,60 @@ export async function approvePaymentController(
 // =====================================
 
 export async function rejectPaymentController(
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) {
 
-  try {
+    try {
 
-    const params =
-      request.params as {
-        id: string;
-      };
-
-
-    const body =
-      request.body as {
-        adminNote?: string;
-      };
+        const params =
+            request.params as {
+                id: string;
+            };
 
 
-    const payment =
-      await rejectSellerPayment(
-        params.id,
-        body?.adminNote
-      );
+        const body =
+            request.body as {
+                adminNote?: string;
+            };
 
 
-    return reply.send({
+        const payment =
+            await rejectSellerPayment(
 
-      success: true,
+                params.id,
 
-      message:
-        "Payment rejected",
+                body?.adminNote
 
-      payment
+            );
 
-    });
 
-  } catch (error: any) {
+        return reply.send({
 
-    return reply
-      .code(400)
-      .send({
+            success: true,
 
-        success: false,
+            message:
+                "Payment rejected",
 
-        message:
-          error.message
+            payment
 
-      });
+        });
 
-  }
+    } catch (error: any) {
+
+        return reply
+            .code(400)
+            .send({
+
+                success: false,
+
+                message:
+                    error.message
+
+            });
+
+    }
 
 }
+
+

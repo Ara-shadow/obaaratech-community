@@ -78,6 +78,51 @@ export async function addCartItem(
     listingId:string
 ){
 
+    const listing =
+        await prisma.listing.findFirst({
+
+            where:{
+
+                id:listingId,
+
+                status:"ACTIVE",
+
+                available:true,
+
+                price:{
+                    not:null
+                }
+
+            },
+
+            select:{
+
+                id:true,
+
+                ownerId:true
+
+            }
+
+        });
+
+
+    if(!listing){
+
+        throw new Error(
+            "This listing is no longer available to add to your cart"
+        );
+
+    }
+
+
+    if(listing.ownerId === userId){
+
+        throw new Error(
+            "You cannot add your own listing to your cart"
+        );
+
+    }
+
     let cart =
         await prisma.cart.findUnique({
 
@@ -148,9 +193,43 @@ export async function addCartItem(
 // =====================================
 
 export async function updateCartItemQuantity(
+    userId:string,
     itemId:string,
     quantity:number
 ){
+
+    const item =
+        await prisma.cartItem.findFirst({
+
+            where:{
+
+                id:itemId,
+
+                cart:{
+
+                    userId
+
+                }
+
+            },
+
+            select:{
+
+                id:true
+
+            }
+
+        });
+
+
+    if(!item){
+
+        throw new Error(
+            "Cart item not found"
+        );
+
+    }
+
 
     return prisma.cartItem.update({
 
@@ -173,13 +252,47 @@ export async function updateCartItemQuantity(
 // =====================================
 
 export async function removeCartItem(
+    userId:string,
     itemId:string
 ){
+
+    const item =
+        await prisma.cartItem.findFirst({
+
+            where:{
+
+                id:itemId,
+
+                cart:{
+
+                    userId
+
+                }
+
+            },
+
+            select:{
+
+                id:true
+
+            }
+
+        });
+
+
+    if(!item){
+
+        throw new Error(
+            "Cart item not found"
+        );
+
+    }
+
 
     return prisma.cartItem.delete({
 
         where:{
-            id:itemId
+            id:item.id
         }
 
     });

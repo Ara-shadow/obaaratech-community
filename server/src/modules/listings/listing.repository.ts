@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 
 import {
+  Currency,
   ListingStatus,
   ListingType
 } from "@prisma/client";
@@ -701,6 +702,8 @@ export async function createListingWithFeatured(
 
     price: number;
 
+    currency: Currency;
+
     location: string;
 
     condition?: string;
@@ -733,6 +736,8 @@ export async function createListingWithFeatured(
       description: data.description,
 
       price: data.price,
+
+      currency: data.currency,
 
       location: data.location,
 

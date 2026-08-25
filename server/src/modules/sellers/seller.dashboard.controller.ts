@@ -7,7 +7,6 @@ import {
     getSellerDashboard
 } from "./seller.dashboard.service.js";
 
-
 // =================================
 // SELLER DASHBOARD
 // =================================
@@ -18,30 +17,63 @@ export async function sellerDashboardController(
 
     reply: FastifyReply
 
-){
+) {
 
-    const user =
-        request.user as {
-            id:string;
-        };
+    try {
 
-
-    const dashboard =
-        await getSellerDashboard(
-
-            request.server,
-
-            user.id
-
-        );
+        const user =
+            request.user as {
+                id: string;
+            };
 
 
-    return reply.send({
+        const dashboard =
+            await getSellerDashboard(
 
-        success:true,
+                user.id
 
-        dashboard
+            );
 
-    });
+
+        return reply.send({
+
+            success: true,
+
+            dashboard
+
+        });
+
+    } catch (error: any) {
+
+        const message =
+            error?.message ??
+            "Unable to load seller dashboard";
+
+
+        if (
+            message ===
+            "Business plan required to access the seller dashboard"
+        ) {
+
+            return reply.code(403).send({
+
+                success: false,
+
+                message
+
+            });
+
+        }
+
+
+        return reply.code(400).send({
+
+            success: false,
+
+            message
+
+        });
+
+    }
 
 }

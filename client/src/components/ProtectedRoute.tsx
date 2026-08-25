@@ -1,5 +1,6 @@
 import {
-    Navigate
+    Navigate,
+    useLocation
 } from "react-router-dom";
 
 import {
@@ -14,28 +15,34 @@ interface Props {
 }
 
 
-
 export default function ProtectedRoute({
 
     children
 
 }: Props) {
 
-
     const {
         isAuthenticated,
         loading
-
     } = useAuth();
 
 
+    const location =
+        useLocation();
+
+
+    // =====================================================
+    // AUTHENTICATION IS STILL BEING RESTORED
+    // =====================================================
 
     if (loading) {
 
         return (
 
-            <div>
+            <div className="protected-route-loading">
+
                 Loading...
+
             </div>
 
         );
@@ -43,6 +50,9 @@ export default function ProtectedRoute({
     }
 
 
+    // =====================================================
+    // USER IS NOT AUTHENTICATED
+    // =====================================================
 
     if (!isAuthenticated) {
 
@@ -51,6 +61,12 @@ export default function ProtectedRoute({
             <Navigate
                 to="/login"
                 replace
+                state={{
+                    from:
+                        location.pathname +
+                        location.search +
+                        location.hash
+                }}
             />
 
         );
@@ -58,8 +74,10 @@ export default function ProtectedRoute({
     }
 
 
+    // =====================================================
+    // USER IS AUTHENTICATED
+    // =====================================================
 
     return children;
-
 
 }

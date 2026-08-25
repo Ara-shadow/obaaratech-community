@@ -46,11 +46,12 @@ export async function addItemToCart(
 // =====================================
 
 export async function changeCartItemQuantity(
+    userId:string,
     itemId:string,
     quantity:number
 ){
 
-    if(quantity < 1){
+    if(!Number.isInteger(quantity) || quantity < 1){
 
         throw new Error(
             "Quantity must be at least 1"
@@ -60,6 +61,7 @@ export async function changeCartItemQuantity(
 
 
     return updateCartItemQuantity(
+        userId,
         itemId,
         quantity
     );
@@ -73,10 +75,12 @@ export async function changeCartItemQuantity(
 // =====================================
 
 export async function removeItemFromCart(
+    userId:string,
     itemId:string
 ){
 
     return removeCartItem(
+        userId,
         itemId
     );
 

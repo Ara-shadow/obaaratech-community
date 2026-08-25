@@ -1,23 +1,38 @@
 import {
-
-  getSellerProfile
-
+    getSellerProfile
 } from "./seller.repository.js";
 
+import {
+    calculateSellerBusinessStatus
+} from "./seller.hours.status.js";
 
 
-
+// =====================================
+// GET SELLER PROFILE
+// =====================================
 
 export async function fetchSellerProfile(
+    sellerId: string
+) {
 
-  sellerId:string
+    const seller =
+        await getSellerProfile(
+            sellerId
+        );
 
-){
 
-  return getSellerProfile(
+    const businessStatus =
+        calculateSellerBusinessStatus(
+            seller.businessHours
+        );
 
-    sellerId
 
-  );
+    return {
+
+        ...seller,
+
+        businessStatus
+
+    };
 
 }

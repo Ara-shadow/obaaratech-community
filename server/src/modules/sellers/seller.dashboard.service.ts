@@ -1,5 +1,3 @@
-import type { FastifyInstance } from "fastify";
-
 import { prisma } from "../../lib/prisma.js";
 
 import {
@@ -10,16 +8,12 @@ import {
 
 // =================================
 // SELLER DASHBOARD
+// BUSINESS PLAN ONLY
 // =================================
 
 export async function getSellerDashboard(
-
-    app:FastifyInstance,
-
-    userId:string
-
-){
-
+    userId: string
+) {
 
     const plan =
         await getSellerPlan(
@@ -27,49 +21,71 @@ export async function getSellerDashboard(
         );
 
 
+    // =================================
+    // BUSINESS DASHBOARD ACCESS
+    // =================================
 
-  const user =
-    await prisma.user.findUnique({
+    if (
+        !plan ||
+        plan.name !== "BUSINESS"
+    ) {
 
-            where:{
-                id:userId
+        throw new Error(
+            "Business plan required to access the seller dashboard"
+        );
+
+    }
+
+
+    const user =
+        await prisma.user.findUnique({
+
+            where: {
+                id: userId
             },
 
-            select:{
+            select: {
 
-                name:true,
+                name: true,
 
-                email:true,
+                email: true,
 
-                phone:true,
+                phone: true,
 
-                verifiedSeller:true
+                verifiedSeller: true
 
             }
 
         });
 
+
+    if (!user) {
+
+        throw new Error(
+            "Seller account not found"
+        );
+
+    }
 
 
     const listings =
-    await prisma.listing.count({
+        await prisma.listing.count({
 
-            where:{
-                ownerId:userId
+            where: {
+                ownerId: userId
             }
 
         });
 
 
-
     const images =
-    await prisma.listingImage.count({
+        await prisma.listingImage.count({
 
-            where:{
+            where: {
 
-                listing:{
+                listing: {
 
-                    ownerId:userId
+                    ownerId: userId
 
                 }
 
@@ -78,100 +94,75 @@ export async function getSellerDashboard(
         });
 
 
-
     return {
 
+        seller: user,
 
-        seller:user,
 
-
-        plan:{
-
+        plan: {
 
             name:
-                plan?.name ?? "FREE",
-
+                plan.name,
 
             maxListings:
-                plan?.maxListings ?? 0,
-
+                plan.maxListings,
 
             imageLimit:
-                plan?.imageLimit ?? 0,
-
+                plan.imageLimit,
 
             featuredListing:
-                plan?.featuredListing ?? false,
-
+                plan.featuredListing,
 
             verifiedBadge:
-                plan?.verifiedBadge ?? false
-
+                plan.verifiedBadge
 
         },
 
 
-
-        usage:{
-
+        usage: {
 
             listings,
-
 
             remainingListings:
                 Math.max(
 
                     0,
 
-                    (plan?.maxListings ?? 0)
-                    -
+                    plan.maxListings -
                     listings
 
                 ),
 
 
-
             images,
-
 
             remainingImages:
                 Math.max(
 
                     0,
 
-                    (plan?.imageLimit ?? 0)
-                    -
+                    plan.imageLimit -
                     images
 
                 )
 
-
         },
 
 
-
-        features:{
-
+        features: {
 
             canFeature:
-
                 await canFeatureListing(
                     userId
                 ),
 
-
-
             hasVerifiedBadge:
-
                 await hasVerifiedBadge(
                     userId
                 )
 
-
         }
 
-
     };
-
 
 }

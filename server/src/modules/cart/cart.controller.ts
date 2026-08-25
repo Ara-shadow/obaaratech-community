@@ -102,6 +102,11 @@ export async function updateCartController(
     reply:FastifyReply
 ){
 
+    const user =
+        request.user as {
+            id:string;
+        };
+
     const {
         itemId
     } =
@@ -120,6 +125,7 @@ export async function updateCartController(
 
     const item =
         await changeCartItemQuantity(
+            user.id,
             itemId,
             quantity
         );
@@ -155,7 +161,14 @@ export async function removeCartController(
     };
 
 
+    const user =
+        request.user as {
+            id:string;
+        };
+
+
     await removeItemFromCart(
+        user.id,
         itemId
     );
 

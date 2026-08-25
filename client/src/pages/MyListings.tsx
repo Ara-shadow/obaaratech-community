@@ -293,30 +293,34 @@ export default function MyListings() {
     // FORMAT PRICE
     // =====================================================
 
-    function formatPrice(
-        price: number | null
+   function formatPrice(
+    price: number | null,
+    currency:
+        | "NGN"
+        | "USD"
+        | "GBP"
+        | "EUR" = "NGN"
+) {
+
+    if (
+        price === null ||
+        price === undefined
     ) {
 
-        if (
-            price === null ||
-            price === undefined
-        ) {
-
-            return "Contact seller";
-
-        }
-
-
-        return new Intl.NumberFormat(
-            "en-NG",
-            {
-                style: "currency",
-                currency: "NGN",
-                maximumFractionDigits: 0
-            }
-        ).format(price);
+        return "Contact seller";
 
     }
+
+    return new Intl.NumberFormat(
+        "en-NG",
+        {
+            style: "currency",
+            currency,
+            maximumFractionDigits: 0
+        }
+    ).format(price);
+
+}
 
 
     // =====================================================
@@ -620,9 +624,10 @@ export default function MyListings() {
 
                                         <strong className="seller-listing-price">
 
-                                            {formatPrice(
-                                                listing.price
-                                            )}
+                                         {formatPrice(
+    listing.price,
+    listing.currency ?? "NGN"
+)}
 
                                         </strong>
 

@@ -1,164 +1,155 @@
 import { prisma } from "../../lib/prisma.js";
 
 
-
 // ==============================
 // GET SELLER PROFILE
 // ==============================
 
 export async function getSellerProfile(
+    sellerId: string
+) {
 
-  sellerId:string
+    const seller =
+        await prisma.user.findUnique({
 
-){
+            where: {
+                id: sellerId
+            },
 
+            select: {
 
-  const seller =
+                id: true,
 
-    await prisma.user.findUnique({
+                name: true,
 
-      where:{
+                phone: true,
 
-        id:sellerId
+                avatar: true,
 
-      },
+                verifiedSeller: true,
 
+                createdAt: true,
 
-      select:{
 
-        id:true,
+                listings: {
 
-        name:true,
+                    where: {
 
-        phone:true,
+                        available: true
 
-        avatar:true,
+                    },
 
-        verifiedSeller:true,
+                    include: {
 
-        createdAt:true,
+                        images: true,
 
+                        category: true
 
-        listings:{
+                    },
 
-          where:{
+                    orderBy: {
 
-            available:true
+                        createdAt: "desc"
 
-          },
+                    }
 
+                },
 
-          include:{
 
-            images:true,
+                reviews: {
 
-            category:true
+                    select: {
 
-          },
+                        rating: true
 
+                    }
 
-          orderBy:{
+                },
 
-            createdAt:"desc"
 
-          }
+                businessHours: {
 
-        },
+                    orderBy: {
 
+                        dayOfWeek: "asc"
 
-        reviews:{
+                    }
 
-          select:{
+                }
 
-            rating:true
+            }
 
-          }
+        });
 
-        }
 
+    if (!seller) {
 
-      }
+        throw new Error(
+            "Seller not found"
+        );
 
+    }
 
-    });
 
+    // ==============================
+    // REVIEW CALCULATIONS
+    // ==============================
 
+    const totalReviews =
+        seller.reviews.length;
 
 
+    const averageRating =
+        totalReviews
+            ? seller.reviews.reduce(
+                (
+                    sum,
+                    review
+                ) =>
+                    sum + review.rating,
+                0
+            ) / totalReviews
+            : 0;
 
-  if(!seller){
 
-    throw new Error(
-      "Seller not found"
-    );
+    // ==============================
+    // PUBLIC SELLER PROFILE
+    // ==============================
 
-  }
+    return {
 
+        id: seller.id,
 
+        name: seller.name,
 
+        phone: seller.phone,
 
+        avatar: seller.avatar,
 
-  const totalReviews =
+        verifiedSeller:
+            seller.verifiedSeller,
 
-    seller.reviews.length;
+        joinedAt:
+            seller.createdAt,
 
 
+        totalListings:
+            seller.listings.length,
 
-  const averageRating =
 
-    totalReviews
+        totalReviews,
 
-    ?
 
-    seller.reviews.reduce(
+        averageRating,
 
-      (sum,r)=>
 
-        sum + r.rating,
+        businessHours:
+            seller.businessHours,
 
-      0
 
-    ) / totalReviews
+        listings:
+            seller.listings
 
-    :
-
-    0;
-
-
-
-
-
-  return {
-
-    id:seller.id,
-
-    name:seller.name,
-
-    phone:seller.phone,
-
-    avatar:seller.avatar,
-
-    verifiedSeller:seller.verifiedSeller,
-
-    joinedAt:seller.createdAt,
-
-
-    totalListings:
-
-      seller.listings.length,
-
-
-    totalReviews,
-
-
-    averageRating,
-
-
-    listings:
-
-      seller.listings
-
-  };
-
+    };
 
 }

@@ -80,6 +80,8 @@ export interface CreateListingData {
 
     price?: number;
 
+      currency?: "NGN" | "USD" | "GBP" | "EUR";
+      
     negotiable?: boolean;
 
 

@@ -3,30 +3,28 @@ import { prisma } from "../../lib/prisma.js";
 
 
 // =====================================
-// CREATE SUBSCRIPTION
+// CREATE / RENEW SUBSCRIPTION
 // =====================================
 
 export async function createSellerSubscription(
 
-  userId:string,
+  userId: string,
 
-  planId:string
+  planId: string
 
-){
-
+) {
 
   const plan =
     await prisma.sellerPlan.findUnique({
 
-      where:{
-        id:planId
+      where: {
+        id: planId
       }
 
     });
 
 
-
-  if(!plan){
+  if (!plan) {
 
     throw new Error(
       "Seller plan not found"
@@ -35,48 +33,76 @@ export async function createSellerSubscription(
   }
 
 
-
-  const expiryDate = new Date();
-
-  expiryDate.setDate(
-    expiryDate.getDate() + plan.duration
-  );
-
+  const now =
+    new Date();
 
 
   const existing =
     await prisma.sellerSubscription.findUnique({
 
-      where:{
+      where: {
         userId
       }
 
     });
 
 
+  /*
+   * If the current subscription is still active,
+   * continue from its existing expiry date.
+   *
+   * Example:
+   *
+   * Existing expiry: August 20
+   * Renewal date:    August 14
+   * Duration:        30 days
+   *
+   * New expiry:      September 19
+   */
 
-  if(existing){
+  if (
+    existing &&
+    existing.active &&
+    existing.expiryDate > now
+  ) {
+
+    const expiryDate =
+      new Date(
+        existing.expiryDate
+      );
+
+
+    expiryDate.setDate(
+
+      expiryDate.getDate() +
+      plan.duration
+
+    );
+
 
     return prisma.sellerSubscription.update({
 
-      where:{
+      where: {
         userId
       },
 
-      data:{
+      data: {
 
         planId,
 
-        startDate:new Date(),
+        startDate:
+          existing.expiryDate,
 
         expiryDate,
 
-        active:true
+        active: true
 
       },
 
-      include:{
-        plan:true
+      include: {
+
+        plan: true
+
       }
 
     });
@@ -84,30 +110,78 @@ export async function createSellerSubscription(
   }
 
 
+  /*
+   * New subscription or expired subscription.
+   */
+
+  const expiryDate =
+    new Date();
+
+
+  expiryDate.setDate(
+
+    expiryDate.getDate() +
+    plan.duration
+
+  );
+
+
+  if (existing) {
+
+    return prisma.sellerSubscription.update({
+
+      where: {
+        userId
+      },
+
+      data: {
+
+        planId,
+
+        startDate: now,
+
+        expiryDate,
+
+        active: true
+
+      },
+
+      include: {
+
+        plan: true
+
+      }
+
+    });
+
+  }
 
 
   return prisma.sellerSubscription.create({
 
-    data:{
+    data: {
 
       userId,
 
       planId,
 
-      expiryDate
+      startDate: now,
+
+      expiryDate,
+
+      active: true
 
     },
 
-    include:{
-      plan:true
+    include: {
+
+      plan: true
+
     }
 
   });
 
 }
-
-
-
 
 
 
@@ -117,30 +191,36 @@ export async function createSellerSubscription(
 
 export async function getMySubscription(
 
-  userId:string
+  userId: string
 
-){
+) {
 
   return prisma.sellerSubscription.findFirst({
 
-    where:{
+    where: {
 
       userId,
 
-      active:true,
+      active: true,
 
-      expiryDate:{
-        gt:new Date()
+      expiryDate: {
+
+        gt: new Date()
+
       }
 
     },
 
-    include:{
-      plan:true
+    include: {
+
+      plan: true
+
     },
 
-    orderBy:{
-      createdAt:"desc"
+    orderBy: {
+
+      createdAt: "desc"
+
     }
 
   });

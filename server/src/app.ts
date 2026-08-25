@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
+import rawBody from "fastify-raw-body";
 
 import path from "node:path";
 
@@ -22,6 +23,7 @@ import planRoutes from "./modules/plans/plan.routes.js";
 
 import { favouriteRoutes } from "./modules/favourites/index.js";
 import cartRoutes from "./modules/cart/cart.routes.js";
+import orderRoutes from "./modules/orders/order.routes.js";
 
 import postsRoutes from "./modules/posts/posts.routes.js";
 import commentsRoutes from "./modules/comments/comments.routes.js";
@@ -41,14 +43,16 @@ import {
     marketplaceRoutes
 } from "./modules/marketplace/marketplace.routes.js";
 
-import { uploadRoutes } from "./modules/uploads/index.js";
-
 // ===============================
 // SELLERS
 // ===============================
 
 import sellerRoutes from "./modules/sellers/seller.routes.js";
+import sellerSubscriptionRoutes from "./modules/sellers/seller.subscription.routes.js";
+import paymentRoutes from "./modules/payments/payment.routes.js";
 import sellerListingRoutes from "./modules/sellers/seller.listings.routes.js";
+
+import marketplacePaymentRoutes from "./modules/marketplace-payments/marketplace-payment.routes.js";
 
 // ===============================
 // BUILD APP
@@ -57,8 +61,11 @@ import sellerListingRoutes from "./modules/sellers/seller.listings.routes.js";
 export async function buildApp() {
 
     const app = Fastify({
+
         logger: true,
+
         trustProxy: true
+
     });
 
     // ===============================
@@ -66,6 +73,7 @@ export async function buildApp() {
     // ===============================
 
     app.setErrorHandler(
+
         (error, request, reply) => {
 
             request.log.error(error);
@@ -86,10 +94,15 @@ export async function buildApp() {
             return reply
                 .code(statusCode)
                 .send({
+
                     success: false,
+
                     message
+
                 });
+
         }
+
     );
 
     // ===============================
@@ -97,10 +110,45 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         cors,
+
         {
+
             origin: true
+
         }
+
+    );
+
+    // ===============================
+    // RAW BODY
+    // ===============================
+    //
+    // Required by Flutterwave webhook
+    // signature verification.
+    //
+    // Flutterwave signs the ORIGINAL
+    // request body.
+    //
+    // ===============================
+
+    await app.register(
+
+        rawBody,
+
+        {
+
+            field: "rawBody",
+
+            global: true,
+
+            encoding: "utf8",
+
+            runFirst: true
+
+        }
+
     );
 
     // ===============================
@@ -108,12 +156,20 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         multipart,
+
         {
+
             limits: {
-                fileSize: 10 * 1024 * 1024
+
+                fileSize:
+                    5 * 1024 * 1024
+
             }
+
         }
+
     );
 
     // ===============================
@@ -121,15 +177,25 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
-        fastifyStatic,
-        {
-            root: path.join(
-                process.cwd(),
-                "uploads"
-            ),
 
-            prefix: "/uploads/"
+        fastifyStatic,
+
+        {
+
+            root:
+                path.join(
+
+                    process.cwd(),
+
+                    "uploads"
+
+                ),
+
+            prefix:
+                "/uploads/"
+
         }
+
     );
 
     // ===============================
@@ -137,7 +203,9 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         jwtPlugin
+
     );
 
     // ===============================
@@ -145,7 +213,9 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         authenticatePlugin
+
     );
 
     // ===============================
@@ -153,10 +223,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         authRoutes,
+
         {
-            prefix: "/api/auth"
+
+            prefix:
+                "/api/auth"
+
         }
+
     );
 
     // ===============================
@@ -164,10 +240,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         usersRoutes,
+
         {
-            prefix: "/api/users"
+
+            prefix:
+                "/api/users"
+
         }
+
     );
 
     // ===============================
@@ -175,10 +257,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         profileRoutes,
+
         {
-            prefix: "/api/profile"
+
+            prefix:
+                "/api/profile"
+
         }
+
     );
 
     // ===============================
@@ -186,10 +274,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         categoryRoutes,
+
         {
-            prefix: "/api/categories"
+
+            prefix:
+                "/api/categories"
+
         }
+
     );
 
     // ===============================
@@ -197,10 +291,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         marketplaceRoutes,
+
         {
-            prefix: "/api/marketplace"
+
+            prefix:
+                "/api/marketplace"
+
         }
+
     );
 
     // ===============================
@@ -208,17 +308,29 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         listingRoutes,
+
         {
-            prefix: "/api/listings"
+
+            prefix:
+                "/api/listings"
+
         }
+
     );
 
     await app.register(
+
         listingImageRoutes,
+
         {
-            prefix: "/api/listings"
+
+            prefix:
+                "/api/listings"
+
         }
+
     );
 
     // ===============================
@@ -226,10 +338,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         postsRoutes,
+
         {
-            prefix: "/api/posts"
+
+            prefix:
+                "/api/posts"
+
         }
+
     );
 
     // ===============================
@@ -237,10 +355,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         commentsRoutes,
+
         {
-            prefix: "/api"
+
+            prefix:
+                "/api"
+
         }
+
     );
 
     // ===============================
@@ -248,10 +372,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         likesRoutes,
+
         {
-            prefix: "/api"
+
+            prefix:
+                "/api"
+
         }
+
     );
 
     // ===============================
@@ -259,10 +389,16 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         notificationsRoutes,
+
         {
-            prefix: "/api"
+
+            prefix:
+                "/api"
+
         }
+
     );
 
     // ===============================
@@ -270,34 +406,50 @@ export async function buildApp() {
     // ===============================
 
     await app.register(
+
         favouriteRoutes,
+
         {
-            prefix: "/api/favourites"
+
+            prefix:
+                "/api/favourites"
+
         }
+
     );
 
-
-
     // ===============================
-// CART
-// ===============================
-
-await app.register(
-    cartRoutes,
-    {
-        prefix: "/api/cart"
-    }
-);
-
-    // ===============================
-    // UPLOADS
+    // CART
     // ===============================
 
     await app.register(
-        uploadRoutes,
+
+        cartRoutes,
+
         {
-            prefix: "/api/uploads"
+
+            prefix:
+                "/api/cart"
+
         }
+
+    );
+
+    // ===============================
+    // ORDERS
+    // ===============================
+
+    await app.register(
+
+        orderRoutes,
+
+        {
+
+            prefix:
+                "/api"
+
+        }
+
     );
 
     // ===============================
@@ -305,10 +457,33 @@ await app.register(
     // ===============================
 
     await app.register(
+
         sellerRoutes,
+
         {
-            prefix: "/api/sellers"
+
+            prefix:
+                "/api/sellers"
+
         }
+
+    );
+
+    // ===============================
+    // SELLER SUBSCRIPTION
+    // ===============================
+
+    await app.register(
+
+        sellerSubscriptionRoutes,
+
+        {
+
+            prefix:
+                "/api/sellers/subscription"
+
+        }
+
     );
 
     // ===============================
@@ -316,10 +491,16 @@ await app.register(
     // ===============================
 
     await app.register(
+
         sellerListingRoutes,
+
         {
-            prefix: "/api/sellers"
+
+            prefix:
+                "/api/sellers"
+
         }
+
     );
 
     // ===============================
@@ -327,10 +508,50 @@ await app.register(
     // ===============================
 
     await app.register(
+
         planRoutes,
+
         {
-            prefix: "/api/plans"
+
+            prefix:
+                "/api/plans"
+
         }
+
+    );
+
+    // ===============================
+    // PAYMENTS
+    // ===============================
+
+    await app.register(
+
+        paymentRoutes,
+
+        {
+
+            prefix:
+                "/api/payments"
+
+        }
+
+    );
+
+    // ===============================
+    // MARKETPLACE PAYMENTS
+    // ===============================
+
+    await app.register(
+
+        marketplacePaymentRoutes,
+
+        {
+
+            prefix:
+                "/api/marketplace/payments"
+
+        }
+
     );
 
     // ===============================
@@ -338,15 +559,26 @@ await app.register(
     // ===============================
 
     app.get(
+
         "/",
+
         async () => {
 
             return {
-                name: "Obaaratech Community API",
-                status: "running",
-                version: "1.0.0"
+
+                name:
+                    "Obaaratech Community API",
+
+                status:
+                    "running",
+
+                version:
+                    "1.0.0"
+
             };
+
         }
+
     );
 
     // ===============================
@@ -354,14 +586,23 @@ await app.register(
     // ===============================
 
     app.get(
+
         "/health",
+
         async () => {
 
             return {
-                success: true,
-                message: "API is healthy"
+
+                success:
+                    true,
+
+                message:
+                    "API is healthy"
+
             };
+
         }
+
     );
 
     // ===============================
@@ -369,18 +610,28 @@ await app.register(
     // ===============================
 
     app.get(
+
         "/database",
+
         async () => {
 
             const users =
                 await prisma.user.count();
 
             return {
-                success: true,
-                database: "connected",
+
+                success:
+                    true,
+
+                database:
+                    "connected",
+
                 users
+
             };
+
         }
+
     );
 
     // ===============================
@@ -388,8 +639,11 @@ await app.register(
     // ===============================
 
     console.log(
+
         app.printRoutes()
+
     );
 
     return app;
+
 }

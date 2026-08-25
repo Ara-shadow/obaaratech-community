@@ -16,7 +16,8 @@ import {
     Mail,
     LogOut,
     ChevronRight,
-    Loader2
+    Loader2,
+    Clock3
 } from "lucide-react";
 
 import {
@@ -442,6 +443,33 @@ export default function Account() {
 
                             </div>
 
+
+                            <ChevronRight
+                                size={19}
+                            />
+
+                        </Link>
+
+                        <Link
+                            to="/business-hours"
+                            className="account-action-card"
+                        >
+
+                            <Clock3
+                                size={24}
+                            />
+
+                            <div>
+
+                                <strong>
+                                    Business Hours
+                                </strong>
+
+                                <span>
+                                    Set your weekly opening hours
+                                </span>
+
+                            </div>
 
                             <ChevronRight
                                 size={19}

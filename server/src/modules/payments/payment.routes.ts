@@ -1,18 +1,20 @@
 import type {
-  FastifyInstance
+    FastifyInstance
 } from "fastify";
 
 import {
-  createPaymentController,
-  myPaymentsController,
-  paymentByIdController,
-  allPaymentsController,
-  approvePaymentController,
-  rejectPaymentController
+    initializePaymentController,
+    verifyPaymentController,
+    createPaymentController,
+    myPaymentsController,
+    paymentByIdController,
+    allPaymentsController,
+    approvePaymentController,
+    rejectPaymentController
 } from "./payment.controller.js";
 
 import {
-  adminOnly
+    adminOnly
 } from "../../middleware/role.js";
 
 
@@ -21,120 +23,178 @@ import {
 // =====================================
 
 export default async function paymentRoutes(
-  app: FastifyInstance
+    app: FastifyInstance
 ) {
 
 
-  // ===================================
-  // SELLER / USER
-  // ===================================
+    // =================================
+    // INITIALIZE PAYMENT
+    // =================================
 
-  app.post(
+    app.post(
 
-    "/",
+        "/initialize",
 
-    {
+        {
 
-      preHandler: [
-        app.authenticate
-      ]
+            preHandler: [
+                app.authenticate
+            ]
 
-    },
+        },
 
-    createPaymentController
+        initializePaymentController
 
-  );
-
-
-  app.get(
-
-    "/me",
-
-    {
-
-      preHandler: [
-        app.authenticate
-      ]
-
-    },
-
-    myPaymentsController
-
-  );
+    );
 
 
-  app.get(
+    // =================================
+    // VERIFY PAYMENT
+    // =================================
 
-    "/:id",
+    app.post(
 
-    {
+        "/verify",
 
-      preHandler: [
-        app.authenticate
-      ]
+        {
 
-    },
+            preHandler: [
+                app.authenticate
+            ]
 
-    paymentByIdController
+        },
 
-  );
+        verifyPaymentController
 
-
-  // ===================================
-  // ADMIN
-  // ===================================
-
-  app.get(
-
-    "/",
-
-    {
-
-      preHandler: [
-        app.authenticate,
-        adminOnly
-      ]
-
-    },
-
-    allPaymentsController
-
-  );
+    );
 
 
-  app.post(
+    // =================================
+    // MANUAL PAYMENT SUBMISSION
+    // =================================
 
-    "/:id/approve",
+    app.post(
 
-    {
+        "/",
 
-      preHandler: [
-        app.authenticate,
-        adminOnly
-      ]
+        {
 
-    },
+            preHandler: [
+                app.authenticate
+            ]
 
-    approvePaymentController
+        },
 
-  );
+        createPaymentController
+
+    );
 
 
-  app.post(
+    // =================================
+    // MY PAYMENTS
+    // =================================
 
-    "/:id/reject",
+    app.get(
 
-    {
+        "/me",
 
-      preHandler: [
-        app.authenticate,
-        adminOnly
-      ]
+        {
 
-    },
+            preHandler: [
+                app.authenticate
+            ]
 
-    rejectPaymentController
+        },
 
-  );
+        myPaymentsController
+
+    );
+
+
+    // =================================
+    // GET PAYMENT
+    // =================================
+
+    app.get(
+
+        "/:id",
+
+        {
+
+            preHandler: [
+                app.authenticate
+            ]
+
+        },
+
+        paymentByIdController
+
+    );
+
+
+    // =================================
+    // ADMIN - ALL PAYMENTS
+    // =================================
+
+    app.get(
+
+        "/",
+
+        {
+
+            preHandler: [
+                app.authenticate,
+                adminOnly
+            ]
+
+        },
+
+        allPaymentsController
+
+    );
+
+
+    // =================================
+    // ADMIN - APPROVE
+    // =================================
+
+    app.post(
+
+        "/:id/approve",
+
+        {
+
+            preHandler: [
+                app.authenticate,
+                adminOnly
+            ]
+
+        },
+
+        approvePaymentController
+
+    );
+
+
+    // =================================
+    // ADMIN - REJECT
+    // =================================
+
+    app.post(
+
+        "/:id/reject",
+
+        {
+
+            preHandler: [
+                app.authenticate,
+                adminOnly
+            ]
+
+        },
+
+        rejectPaymentController
+
+    );
 
 }

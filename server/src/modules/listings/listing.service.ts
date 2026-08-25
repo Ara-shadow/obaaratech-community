@@ -80,6 +80,9 @@ export async function createNewListing(
 
     price:Number(data.price),
 
+    currency:
+        data.currency ?? "NGN",
+
     location:data.location,
 
     condition:data.condition,
