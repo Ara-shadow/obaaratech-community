@@ -1,4 +1,5 @@
 import type {
+    Currency,
     OrderPaymentMethod
 } from "@prisma/client";
 
@@ -632,6 +633,14 @@ export const flutterwaveMarketplaceProvider:
 
                 : undefined;
 
+        const supportedCurrency =
+            currency === "NGN" ||
+            currency === "USD" ||
+            currency === "GBP" ||
+            currency === "EUR"
+                ? currency as Currency
+                : undefined;
+
         // =================================
         // RETURN
         // =================================
@@ -651,7 +660,8 @@ export const flutterwaveMarketplaceProvider:
 
             amount,
 
-            currency,
+            currency:
+                supportedCurrency,
 
             metadata: {
 

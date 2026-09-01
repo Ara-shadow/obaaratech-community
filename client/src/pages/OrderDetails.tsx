@@ -344,18 +344,8 @@ export default function OrderDetails() {
     ) {
 
         switch (method) {
-
-            case "CASH_ON_DELIVERY":
-
-                return "Cash on Delivery";
-
-            case "BANK_TRANSFER":
-
-                return "Bank Transfer";
-
-          case "FLUTTERWAVE":
-
-    return "Flutterwave";
+            case "FLUTTERWAVE":
+                return "Flutterwave";
 
             default:
 

@@ -1,6 +1,5 @@
 import api from "./axios";
 
-
 // =====================================================
 // PAYMENT PROVIDER
 // =====================================================
@@ -8,6 +7,12 @@ import api from "./axios";
 export type MarketplacePaymentProvider =
     | "FLUTTERWAVE";
 
+// =====================================================
+// PAYMENT METHOD
+// =====================================================
+
+export type MarketplacePaymentMethod =
+    | "FLUTTERWAVE";
 
 // =====================================================
 // TRANSACTION STATUS
@@ -19,31 +24,25 @@ export type MarketplaceTransactionStatus =
     | "FAILED"
     | "REFUNDED";
 
-
 // =====================================================
 // INITIALIZE PAYMENT INPUT
 // =====================================================
 
 export interface InitializeMarketplacePaymentInput {
-
     orderId: string;
 
     email: string;
 
-    paymentMethod:
-        | "FLUTTERWAVE";
+    paymentMethod: MarketplacePaymentMethod;
 
     callbackUrl?: string;
-
 }
-
 
 // =====================================================
 // INITIALIZE PAYMENT RESPONSE
 // =====================================================
 
 export interface InitializeMarketplacePaymentResponse {
-
     success: boolean;
 
     transactionId: string;
@@ -56,8 +55,7 @@ export interface InitializeMarketplacePaymentResponse {
 
     currency: string;
 
-    provider:
-        MarketplacePaymentProvider;
+    provider: MarketplacePaymentProvider;
 
     reference: string;
 
@@ -69,49 +67,39 @@ export interface InitializeMarketplacePaymentResponse {
         string,
         unknown
     > | null;
-
 }
-
 
 // =====================================================
 // VERIFY PAYMENT INPUT
 // =====================================================
 
 export interface VerifyMarketplacePaymentInput {
-
     transactionId: string;
 
     reference?: string;
-
 }
-
 
 // =====================================================
 // VERIFY PAYMENT RESPONSE
 // =====================================================
 
 export interface VerifyMarketplacePaymentResponse {
-
     success: boolean;
 
     transactionId: string;
 
     orderId: string;
 
-    status:
-        MarketplaceTransactionStatus;
+    status: MarketplaceTransactionStatus;
 
     reference?: string | null;
-
 }
-
 
 // =====================================================
 // MARKETPLACE TRANSACTION
 // =====================================================
 
 export interface MarketplaceTransaction {
-
     id: string;
 
     orderId: string;
@@ -131,8 +119,7 @@ export interface MarketplaceTransaction {
 
     transactionReference?: string | null;
 
-    status:
-        MarketplaceTransactionStatus;
+    status: MarketplaceTransactionStatus;
 
     metadata?: Record<
         string,
@@ -146,9 +133,7 @@ export interface MarketplaceTransaction {
     createdAt: string;
 
     updatedAt: string;
-
 }
-
 
 // =====================================================
 // INITIALIZE MARKETPLACE PAYMENT
@@ -158,6 +143,27 @@ export async function initializeMarketplacePayment(
     input: InitializeMarketplacePaymentInput
 ): Promise<InitializeMarketplacePaymentResponse> {
 
+    if (!input.orderId?.trim()) {
+        throw new Error(
+            "Order ID is required."
+        );
+    }
+
+    if (!input.email?.trim()) {
+        throw new Error(
+            "Customer email is required."
+        );
+    }
+
+    if (
+        input.paymentMethod !==
+        "FLUTTERWAVE"
+    ) {
+        throw new Error(
+            "Unsupported payment method."
+        );
+    }
+
     const response =
         await api.post<
             InitializeMarketplacePaymentResponse
@@ -166,11 +172,17 @@ export async function initializeMarketplacePayment(
             input
         );
 
+    if (
+        !response.data ||
+        !response.data.transactionId
+    ) {
+        throw new Error(
+            "The server did not return a valid payment transaction."
+        );
+    }
 
     return response.data;
-
 }
-
 
 // =====================================================
 // VERIFY MARKETPLACE PAYMENT
@@ -180,6 +192,12 @@ export async function verifyMarketplacePayment(
     input: VerifyMarketplacePaymentInput
 ): Promise<VerifyMarketplacePaymentResponse> {
 
+    if (!input.transactionId?.trim()) {
+        throw new Error(
+            "Transaction ID is required."
+        );
+    }
+
     const response =
         await api.post<
             VerifyMarketplacePaymentResponse
@@ -188,11 +206,17 @@ export async function verifyMarketplacePayment(
             input
         );
 
+    if (
+        !response.data ||
+        !response.data.transactionId
+    ) {
+        throw new Error(
+            "The server did not return a valid payment verification response."
+        );
+    }
 
     return response.data;
-
 }
-
 
 // =====================================================
 // GET TRANSACTION
@@ -202,19 +226,32 @@ export async function getMarketplaceTransaction(
     transactionId: string
 ): Promise<MarketplaceTransaction> {
 
+    if (!transactionId?.trim()) {
+        throw new Error(
+            "Transaction ID is required."
+        );
+    }
+
     const response =
         await api.get<{
             success: boolean;
             transaction: MarketplaceTransaction;
         }>(
-            `/marketplace/payments/transactions/${transactionId}`
+            `/marketplace/payments/transactions/${encodeURIComponent(
+                transactionId
+            )}`
         );
 
+    if (
+        !response.data?.transaction
+    ) {
+        throw new Error(
+            "The server did not return the payment transaction."
+        );
+    }
 
     return response.data.transaction;
-
 }
-
 
 // =====================================================
 // GET TRANSACTION BY ORDER
@@ -224,15 +261,29 @@ export async function getMarketplaceTransactionByOrder(
     orderId: string
 ): Promise<MarketplaceTransaction> {
 
+    if (!orderId?.trim()) {
+        throw new Error(
+            "Order ID is required."
+        );
+    }
+
     const response =
         await api.get<{
             success: boolean;
-            transaction: MarketplaceTransaction;
+            data: MarketplaceTransaction;
         }>(
-            `/marketplace/payments/orders/${orderId}`
+            `/marketplace/payments/orders/${encodeURIComponent(
+                orderId
+            )}/transaction`
         );
 
+    if (
+        !response.data?.data
+    ) {
+        throw new Error(
+            "The server did not return the order payment transaction."
+        );
+    }
 
-    return response.data.transaction;
-
+    return response.data.data;
 }

@@ -1,8 +1,9 @@
 import { prisma } from "../../lib/prisma.js";
 import type {
     Currency,
+    OrderItemStatus,
     OrderPaymentMethod,
-    OrderItemStatus
+    OrderStatus
 } from "@prisma/client";
 
 // =====================================================
@@ -10,6 +11,69 @@ import type {
 // =====================================================
 
 const PAYMENT_RESERVATION_MINUTES = 30;
+
+function calculateOverallOrderStatus(statuses: OrderItemStatus[]): OrderStatus {
+    if (statuses.length === 0) {
+        return "PENDING";
+    }
+
+    if (statuses.every((status) => status === "CANCELLED")) {
+        return "CANCELLED";
+    }
+
+    if (statuses.every((status) => status === "DELIVERED")) {
+        return "DELIVERED";
+    }
+
+    if (statuses.some((status) => status === "SHIPPED")) {
+        return "SHIPPED";
+    }
+
+    if (statuses.some((status) => status === "READY")) {
+        return "READY";
+    }
+
+    if (statuses.some((status) => status === "PROCESSING")) {
+        return "PROCESSING";
+    }
+
+    if (statuses.some((status) => status === "CONFIRMED")) {
+        return "CONFIRMED";
+    }
+
+    return "PENDING";
+}
+
+function validateSellerStatusTransition(currentStatus: OrderItemStatus, nextStatus: OrderItemStatus) {
+    const progressOrder: OrderItemStatus[] = [
+        "PENDING",
+        "CONFIRMED",
+        "PROCESSING",
+        "READY",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED",
+    ];
+
+    const currentIndex = progressOrder.indexOf(currentStatus);
+    const nextIndex = progressOrder.indexOf(nextStatus);
+
+    if (currentIndex === -1 || nextIndex === -1) {
+        throw new Error("Unsupported order status update");
+    }
+
+    if (currentStatus === "DELIVERED" || currentStatus === "CANCELLED") {
+        throw new Error("This order item is already in a terminal state");
+    }
+
+    if (nextStatus === "CANCELLED") {
+        return;
+    }
+
+    if (nextIndex < currentIndex) {
+        throw new Error("Order status cannot move backward");
+    }
+}
 
 // =====================================================
 // CREATE ORDER
@@ -478,6 +542,21 @@ export async function updateSellerOrderItemStatus(
             // UPDATE SELLER ITEMS
             // =============================================
 
+            const sellerItemStatus = await tx.orderItem.findMany({
+                where: {
+                    orderId,
+                    sellerId,
+                },
+                select: {
+                    id: true,
+                    status: true,
+                },
+            });
+
+            for (const item of sellerItemStatus) {
+                validateSellerStatusTransition(item.status, status);
+            }
+
             await tx.orderItem.updateMany({
                 where: {
                     orderId,
@@ -514,73 +593,8 @@ export async function updateSellerOrderItemStatus(
             // CALCULATE ORDER STATUS
             // =============================================
 
-            let overallStatus:
-                | "PENDING"
-                | "CONFIRMED"
-                | "PROCESSING"
-                | "READY"
-                | "SHIPPED"
-                | "DELIVERED"
-                | "CANCELLED";
-
-            if (
-                statuses.every(
-                    (status) =>
-                        status ===
-                        "CANCELLED"
-                )
-            ) {
-                overallStatus =
-                    "CANCELLED";
-            } else if (
-                statuses.every(
-                    (status) =>
-                        status ===
-                        "DELIVERED"
-                )
-            ) {
-                overallStatus =
-                    "DELIVERED";
-            } else if (
-                statuses.some(
-                    (status) =>
-                        status ===
-                        "SHIPPED"
-                )
-            ) {
-                overallStatus =
-                    "SHIPPED";
-            } else if (
-                statuses.some(
-                    (status) =>
-                        status ===
-                        "READY"
-                )
-            ) {
-                overallStatus =
-                    "READY";
-            } else if (
-                statuses.some(
-                    (status) =>
-                        status ===
-                        "PROCESSING"
-                )
-            ) {
-                overallStatus =
-                    "PROCESSING";
-            } else if (
-                statuses.some(
-                    (status) =>
-                        status ===
-                        "CONFIRMED"
-                )
-            ) {
-                overallStatus =
-                    "CONFIRMED";
-            } else {
-                overallStatus =
-                    "PENDING";
-            }
+            const overallStatus =
+                calculateOverallOrderStatus(statuses);
 
             await tx.order.update({
                 where: {

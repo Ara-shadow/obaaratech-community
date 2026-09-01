@@ -12,12 +12,15 @@ import {
     ShoppingBag,
     Plus,
     PackageCheck,
-    MapPin,
     Mail,
     LogOut,
     ChevronRight,
     Loader2,
-    Clock3
+    Clock3,
+    Phone,
+    Heart,
+    Settings,
+    Store
 } from "lucide-react";
 
 import {
@@ -32,26 +35,21 @@ import type {
     Listing
 } from "../types/listing";
 
+// Extend AuthUser type locally
+interface AuthUser {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+}
 
 export default function Account() {
 
-    const {
-        user,
-        logout
-    } = useAuth();
+    const { user, logout } = useAuth() as { user: AuthUser | null; logout: () => void };
 
-
-    const [
-        listings,
-        setListings
-    ] = useState<Listing[]>([]);
-
-
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
-
+    const [listings, setListings] = useState<Listing[]>([]);
+    const [loading, setLoading] = useState(true);
 
     // =====================================================
     // LOAD SELLER LISTINGS
@@ -61,88 +59,50 @@ export default function Account() {
 
         let mounted = true;
 
-
         async function loadListings() {
 
             try {
-
-                const data =
-                    await getMySellerListings();
-
-
+                const data = await getMySellerListings();
                 if (mounted) {
-
-                    setListings(
-                        data
-                    );
-
+                    setListings(data);
                 }
-
             } catch (error) {
-
-                console.error(
-                    "Account listings error:",
-                    error
-                );
-
+                console.error("Account listings error:", error);
             } finally {
-
                 if (mounted) {
-
                     setLoading(false);
-
                 }
-
             }
 
         }
 
-
         loadListings();
 
-
         return () => {
-
             mounted = false;
-
         };
 
     }, []);
-
 
     // =====================================================
     // STATISTICS
     // =====================================================
 
-    const totalListings =
-        listings.length;
-
-
-    const activeListings =
-        listings.filter(
-            listing =>
-                listing.status !== "SOLD" &&
-                listing.available !== false
-        ).length;
-
-
-    const soldListings =
-        listings.filter(
-            listing =>
-                listing.status === "SOLD"
-        ).length;
-
+    const totalListings = listings.length;
+    const activeListings = listings.filter(
+        listing => listing.status !== "SOLD" && listing.available !== false
+    ).length;
+    const soldListings = listings.filter(
+        listing => listing.status === "SOLD"
+    ).length;
 
     // =====================================================
     // LOGOUT
     // =====================================================
 
     function handleLogout() {
-
         logout();
-
     }
-
 
     // =====================================================
     // PAGE
@@ -150,490 +110,276 @@ export default function Account() {
 
     return (
 
-        <main className="account-page">
+        <div className="account-page-wrapper">
 
-            <div className="account-container">
+            <div className="account-page-container">
 
+                {/* HEADER */}
+                <div className="account-page-header">
 
-                {/* =================================================
-                    HEADER
-                ================================================= */}
-
-                <section className="account-header">
-
-                    <div className="account-profile">
-
-                        <div className="account-avatar">
-
-                            <User
-                                size={30}
-                            />
-
+                    <div className="account-page-user">
+                        <div className="account-page-avatar">
+                            {user?.name?.charAt(0)?.toUpperCase() || "U"}
                         </div>
-
-
                         <div>
-
-                            <h1>
-                                Welcome, {user?.name || "User"}
-                            </h1>
-
-
-                            <p>
-                                Manage your Obaaratech account
-                            </p>
-
+                            <h1>Hello, {user?.name || "User"}!</h1>
+                            <p>Manage your Obaaratech account</p>
                         </div>
-
                     </div>
-
 
                     <button
-                        type="button"
-                        className="account-logout-button"
+                        className="account-page-logout"
                         onClick={handleLogout}
                     >
-
-                        <LogOut
-                            size={17}
-                        />
-
+                        <LogOut size={16} />
                         Logout
-
                     </button>
 
-                </section>
+                </div>
 
+                {/* USER INFO */}
+                <div className="account-page-info">
 
-                {/* =================================================
-                    USER INFORMATION
-                ================================================= */}
-
-                <section className="account-info-card">
-
-                    <div className="account-info-item">
-
-                        <Mail
-                            size={19}
-                        />
-
+                    <div className="account-page-info-item">
+                        <Mail size={18} />
                         <div>
-
-                            <span>
-                                Email
-                            </span>
-
-                            <strong>
-                                {user?.email || "Not available"}
-                            </strong>
-
+                            <span>Email</span>
+                            <strong>{user?.email || "Not available"}</strong>
                         </div>
-
                     </div>
 
-
-                    <div className="account-info-item">
-
-                        <User
-                            size={19}
-                        />
-
+                    <div className="account-page-info-item">
+                        <User size={18} />
                         <div>
-
-                            <span>
-                                Account Role
-                            </span>
-
-                            <strong>
-                                {user?.role || "USER"}
-                            </strong>
-
+                            <span>Role</span>
+                            <strong>{user?.role || "USER"}</strong>
                         </div>
-
                     </div>
 
-                </section>
-
-
-                {/* =================================================
-                    SELLER STATISTICS
-                ================================================= */}
-
-                <section className="account-statistics">
-
-                    <div className="account-stat-card">
-
-                        <div className="account-stat-icon">
-
-                            <ShoppingBag
-                                size={22}
-                            />
-
-                        </div>
-
-
+                    <div className="account-page-info-item">
+                        <Phone size={18} />
                         <div>
-
-                            <span>
-                                Total Listings
-                            </span>
-
+                            <span>Phone <span className="required-field">(Required)</span></span>
                             <strong>
-                                {loading
-                                    ? "..."
-                                    : totalListings}
+                                {user?.phone ? (
+                                    user.phone
+                                ) : (
+                                    <span className="missing-phone">Not provided – Add phone in Profile</span>
+                                )}
                             </strong>
-
                         </div>
-
                     </div>
 
+                </div>
 
-                    <div className="account-stat-card">
+                {/* STATS */}
+                <div className="account-page-stats">
 
-                        <div className="account-stat-icon">
-
-                            <PackageCheck
-                                size={22}
-                            />
-
+                    <div className="account-page-stat">
+                        <div className="account-page-stat-icon blue">
+                            <ShoppingBag size={20} />
                         </div>
-
-
                         <div>
-
-                            <span>
-                                Active
-                            </span>
-
-                            <strong>
-                                {loading
-                                    ? "..."
-                                    : activeListings}
-                            </strong>
-
+                            <span>Total Listings</span>
+                            <strong>{loading ? "..." : totalListings}</strong>
                         </div>
-
                     </div>
 
-
-                    <div className="account-stat-card">
-
-                        <div className="account-stat-icon">
-
-                            <PackageCheck
-                                size={22}
-                            />
-
+                    <div className="account-page-stat">
+                        <div className="account-page-stat-icon green">
+                            <PackageCheck size={20} />
                         </div>
-
-
                         <div>
-
-                            <span>
-                                Sold
-                            </span>
-
-                            <strong>
-                                {loading
-                                    ? "..."
-                                    : soldListings}
-                            </strong>
-
+                            <span>Active</span>
+                            <strong>{loading ? "..." : activeListings}</strong>
                         </div>
-
                     </div>
 
-                </section>
+                    <div className="account-page-stat">
+                        <div className="account-page-stat-icon orange">
+                            <PackageCheck size={20} />
+                        </div>
+                        <div>
+                            <span>Sold</span>
+                            <strong>{loading ? "..." : soldListings}</strong>
+                        </div>
+                    </div>
 
+                </div>
 
-                {/* =================================================
-                    QUICK ACTIONS
-                ================================================= */}
+                {/* QUICK ACTIONS */}
+                <div className="account-page-section">
 
-                <section className="account-section">
+                    <h2>Quick Actions</h2>
 
-                    <h2>
-                        Quick Actions
-                    </h2>
+                    <div className="account-page-actions">
 
-
-                    <div className="account-actions-grid">
-
-
-                        <Link
-                            to="/my-listings"
-                            className="account-action-card"
-                        >
-
-                            <ShoppingBag
-                                size={24}
-                            />
-
-
-                            <div>
-
-                                <strong>
-                                    My Listings
-                                </strong>
-
-                                <span>
-                                    Manage your products and services
-                                </span>
-
+                        <Link to="/my-listings" className="account-page-action">
+                            <div className="account-page-action-icon blue">
+                                <ShoppingBag size={20} />
                             </div>
-
-
-                            <ChevronRight
-                                size={19}
-                            />
-
-                        </Link>
-
-
-                        <Link
-                            to="/create-listing"
-                            className="account-action-card"
-                        >
-
-                            <Plus
-                                size={24}
-                            />
-
-
                             <div>
-
-                                <strong>
-                                    Create Listing
-                                </strong>
-
-                                <span>
-                                    Sell a product or service
-                                </span>
-
+                                <strong>My Listings</strong>
+                                <span>Manage your products</span>
                             </div>
-
-
-                            <ChevronRight
-                                size={19}
-                            />
-
+                            <ChevronRight size={16} />
                         </Link>
 
-
-                        <Link
-                            to="/"
-                            className="account-action-card"
-                        >
-
-                            <MapPin
-                                size={24}
-                            />
-
-
+                        <Link to="/create-listing" className="account-page-action">
+                            <div className="account-page-action-icon green">
+                                <Plus size={20} />
+                            </div>
                             <div>
-
-                                <strong>
-                                    Browse Marketplace
-                                </strong>
-
-                                <span>
-                                    Discover products and services
-                                </span>
-
+                                <strong>Create Listing</strong>
+                                <span>Sell a product or service</span>
                             </div>
-
-
-                            <ChevronRight
-                                size={19}
-                            />
-
+                            <ChevronRight size={16} />
                         </Link>
 
-                        <Link
-                            to="/business-hours"
-                            className="account-action-card"
-                        >
-
-                            <Clock3
-                                size={24}
-                            />
-
+                        <Link to="/favourites" className="account-page-action">
+                            <div className="account-page-action-icon red">
+                                <Heart size={20} />
+                            </div>
                             <div>
-
-                                <strong>
-                                    Business Hours
-                                </strong>
-
-                                <span>
-                                    Set your weekly opening hours
-                                </span>
-
+                                <strong>Favourites</strong>
+                                <span>View saved items</span>
                             </div>
-
-                            <ChevronRight
-                                size={19}
-                            />
-
+                            <ChevronRight size={16} />
                         </Link>
 
+                        <Link to="/profile" className="account-page-action">
+                            <div className="account-page-action-icon purple">
+                                <Settings size={20} />
+                            </div>
+                            <div>
+                                <strong>Profile</strong>
+                                <span>Update your information</span>
+                            </div>
+                            <ChevronRight size={16} />
+                        </Link>
 
-                    </div>
+                        <Link to="/seller-dashboard" className="account-page-action">
+                            <div className="account-page-action-icon orange">
+                                <Store size={20} />
+                            </div>
+                            <div>
+                                <strong>Seller Dashboard</strong>
+                                <span>Track sales & earnings</span>
+                            </div>
+                            <ChevronRight size={16} />
+                        </Link>
 
-                </section>
-
-
-                {/* =================================================
-                    RECENT LISTINGS
-                ================================================= */}
-
-                <section className="account-section">
-
-                    <div className="account-section-header">
-
-                        <h2>
-                            Your Recent Listings
-                        </h2>
-
-
-                        <Link to="/my-listings">
-
-                            View All
-
-                            <ChevronRight
-                                size={17}
-                            />
-
+                        <Link to="/business-hours" className="account-page-action">
+                            <div className="account-page-action-icon teal">
+                                <Clock3 size={20} />
+                            </div>
+                            <div>
+                                <strong>Business Hours</strong>
+                                <span>Set your availability</span>
+                            </div>
+                            <ChevronRight size={16} />
                         </Link>
 
                     </div>
 
+                </div>
+
+                {/* RECENT LISTINGS */}
+                <div className="account-page-section">
+
+                    <div className="account-page-section-header">
+                        <h2>Recent Listings</h2>
+                        <Link to="/my-listings">View All <ChevronRight size={16} /></Link>
+                    </div>
 
                     {loading ? (
 
-                        <div className="account-loading">
-
-                            <Loader2
-                                size={24}
-                                className="spinning"
-                            />
-
-                            <span>
-                                Loading listings...
-                            </span>
-
+                        <div className="account-page-loading">
+                            <Loader2 size={24} className="spinning" />
+                            <span>Loading...</span>
                         </div>
 
                     ) : listings.length === 0 ? (
 
-                        <div className="account-empty">
-
-                            <ShoppingBag
-                                size={34}
-                            />
-
-
-                            <h3>
-                                No listings yet
-                            </h3>
-
-
-                            <p>
-                                Create your first listing and
-                                start selling on Obaaratech.
-                            </p>
-
-
-                            <Link
-                                to="/create-listing"
-                                className="create-listing-button"
-                            >
-
-                                <Plus
-                                    size={18}
-                                />
-
+                        <div className="account-page-empty">
+                            <ShoppingBag size={40} />
+                            <h3>No listings yet</h3>
+                            <p>Create your first listing to start selling.</p>
+                            <Link to="/create-listing" className="btn-primary">
+                                <Plus size={18} />
                                 Create Listing
-
                             </Link>
-
                         </div>
 
                     ) : (
 
-                        <div className="account-listings">
+                        <div className="account-page-listings">
 
-                            {listings
-                                .slice(0, 3)
-                                .map(
-                                    listing => (
+                            {listings.slice(0, 3).map(listing => (
 
-                                        <Link
-                                            key={listing.id}
-                                            to={`/product/${listing.id}`}
-                                            className="account-listing-row"
-                                        >
+                                <Link
+                                    key={listing.id}
+                                    to={`/product/${listing.id}`}
+                                    className="account-page-listing"
+                                >
 
-                                            <div className="account-listing-image">
-
-                                                {listing.images?.length > 0 ? (
-
-                                                    <img
-                                                        src={
-                                                            listing.images[0].url.startsWith(
-                                                                "http"
-                                                            )
-                                                                ? listing.images[0].url
-                                                                : `http://localhost:5000${listing.images[0].url}`
-                                                        }
-                                                        alt={listing.title}
-                                                    />
-
-                                                ) : (
-
-                                                    <ShoppingBag
-                                                        size={25}
-                                                    />
-
-                                                )}
-
-                                            </div>
-
-
-                                            <div className="account-listing-details">
-
-                                                <strong>
-                                                    {listing.title}
-                                                </strong>
-
-
-                                                <span>
-                                                    {listing.location ||
-                                                        "Location not specified"}
-                                                </span>
-
-                                            </div>
-
-
-                                            <ChevronRight
-                                                size={19}
+                                    <div className="account-page-listing-image">
+                                        {listing.images?.length > 0 ? (
+                                            <img
+                                                src={
+                                                    listing.images[0].url.startsWith("http")
+                                                        ? listing.images[0].url
+                                                        : `http://localhost:5000${listing.images[0].url}`
+                                                }
+                                                alt={listing.title}
                                             />
+                                        ) : (
+                                            <ShoppingBag size={20} />
+                                        )}
+                                    </div>
 
-                                        </Link>
+                                    <div className="account-page-listing-info">
+                                        <strong>{listing.title}</strong>
+                                        <span>{listing.location || "Location not specified"}</span>
+                                        <span className={`account-page-listing-status ${
+                                            listing.status === "SOLD" ? "sold" : "active"
+                                        }`}>
+                                            {listing.status === "SOLD" ? "Sold" : "Active"}
+                                        </span>
+                                    </div>
 
-                                    )
-                                )}
+                                    <ChevronRight size={18} />
+
+                                </Link>
+
+                            ))}
 
                         </div>
 
                     )}
 
-                </section>
+                </div>
 
+                {/* PHONE REMINDER */}
+                {!user?.phone && (
+                    <div className="account-page-phone-reminder">
+                        <Phone size={18} className="account-page-phone-reminder-icon" />
+                        <div>
+                            <strong>Complete Your Profile</strong>
+                            <p>
+                                Add your phone number in <Link to="/profile">Profile Settings</Link> so customers can contact you via WhatsApp.
+                            </p>
+                        </div>
+                        <Link to="/profile" className="account-page-phone-reminder-btn">
+                            Update Now
+                            <ChevronRight size={16} />
+                        </Link>
+                    </div>
+                )}
 
             </div>
 
-        </main>
+        </div>
 
     );
 

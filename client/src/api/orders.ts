@@ -1,32 +1,15 @@
-import axios from "axios";
-
-
-// =====================================================
-// API CLIENT
-// =====================================================
-
-const api = axios.create({
-
-    baseURL:
-        "http://localhost:5000/api",
-
-    headers: {
-
-        "Content-Type":
-            "application/json"
-
-    }
-
-});
-
+import api from "./axios";
 
 // =====================================================
-// TYPES
+// PAYMENT METHOD
 // =====================================================
 
 export type OrderPaymentMethod =
-    "FLUTTERWAVE";
+    | "FLUTTERWAVE";
 
+// =====================================================
+// ORDER STATUS
+// =====================================================
 
 export type OrderStatus =
     | "PENDING"
@@ -37,6 +20,9 @@ export type OrderStatus =
     | "DELIVERED"
     | "CANCELLED";
 
+// =====================================================
+// PAYMENT STATUS
+// =====================================================
 
 export type OrderPaymentStatus =
     | "PENDING"
@@ -44,80 +30,79 @@ export type OrderPaymentStatus =
     | "FAILED"
     | "REFUNDED";
 
+// =====================================================
+// CHECKOUT INPUT
+// =====================================================
 
 export interface CheckoutInput {
-
     deliveryAddress: string;
 
     phone: string;
 
     note?: string;
 
-    paymentMethod:
-        "FLUTTERWAVE";
-
+    paymentMethod: OrderPaymentMethod;
 }
 
+// =====================================================
+// ORDER IMAGE
+// =====================================================
 
 export interface OrderImage {
-
     id: string;
 
     url: string;
-
 }
 
+// =====================================================
+// ORDER LISTING
+// =====================================================
 
 export interface OrderListing {
-
     id: string;
 
     title: string;
 
-    price:
-        number | null;
+    price: number | null;
 
-    location?:
-        string | null;
+    location?: string | null;
 
-    images?:
-        OrderImage[];
-
+    images?: OrderImage[];
 }
 
+// =====================================================
+// ORDER SELLER
+// =====================================================
 
 export interface OrderSeller {
-
     id: string;
 
     name: string;
 
-    phone?:
-        string | null;
+    phone?: string | null;
 
-    whatsapp?:
-        string | null;
-
+    whatsapp?: string | null;
 }
 
+// =====================================================
+// ORDER BUYER
+// =====================================================
 
 export interface OrderBuyer {
-
     id: string;
 
     name: string;
 
-    phone?:
-        string | null;
+    phone?: string | null;
 
-    whatsapp?:
-        string | null;
-
+    whatsapp?: string | null;
 }
 
+// =====================================================
+// ORDER ITEM
+// =====================================================
 
 export interface OrderItem {
-
     id: string;
 
     listingId: string;
@@ -132,20 +117,18 @@ export interface OrderItem {
 
     subtotal: number;
 
-    status:
-        OrderStatus;
+    status: OrderStatus;
 
-    listing?:
-        OrderListing;
+    listing?: OrderListing;
 
-    seller?:
-        OrderSeller;
-
+    seller?: OrderSeller;
 }
 
+// =====================================================
+// ORDER
+// =====================================================
 
 export interface Order {
-
     id: string;
 
     orderNumber: string;
@@ -158,44 +141,60 @@ export interface Order {
 
     total: number;
 
-    currency:
-        string;
+    currency: string;
 
-    paymentMethod:
-        OrderPaymentMethod;
+    paymentMethod: OrderPaymentMethod;
 
-    paymentStatus:
-        OrderPaymentStatus;
+    paymentStatus: OrderPaymentStatus;
 
-    status:
-        OrderStatus;
+    status: OrderStatus;
 
-    deliveryAddress:
-        string;
+    deliveryAddress: string;
 
-    phone:
-        string;
+    phone: string;
 
-    note?:
-        string | null;
+    note?: string | null;
 
-    paymentExpiresAt?:
-        string | null;
+    paymentExpiresAt?: string | null;
 
-    createdAt:
-        string;
+    createdAt: string;
 
-    updatedAt:
-        string;
+    updatedAt: string;
 
-    items:
-        OrderItem[];
+    items: OrderItem[];
 
-    buyer?:
-        OrderBuyer;
-
+    buyer?: OrderBuyer;
 }
 
+// =====================================================
+// CHECKOUT RESPONSE
+// =====================================================
+
+export interface CheckoutResponse {
+    success?: boolean;
+
+    order: Order;
+}
+
+// =====================================================
+// GET ORDERS RESPONSE
+// =====================================================
+
+export interface OrdersResponse {
+    success?: boolean;
+
+    orders: Order[];
+}
+
+// =====================================================
+// GET SINGLE ORDER RESPONSE
+// =====================================================
+
+export interface SingleOrderResponse {
+    success?: boolean;
+
+    order: Order;
+}
 
 // =====================================================
 // CHECKOUT
@@ -206,90 +205,105 @@ export async function checkout(
 ): Promise<Order> {
 
     const response =
-        await api.post(
+        await api.post<CheckoutResponse>(
             "/checkout",
             data
         );
 
+    if (!response.data?.order) {
+        throw new Error(
+            "The server did not return the created order."
+        );
+    }
 
     return response.data.order;
-
 }
 
-
 // =====================================================
-// BUYER ORDERS
+// GET BUYER ORDERS
 // =====================================================
 
-export async function getBuyerOrders()
-    : Promise<Order[]> {
+export async function getBuyerOrders():
+    Promise<Order[]> {
 
     const response =
-        await api.get(
+        await api.get<OrdersResponse>(
             "/orders"
         );
 
-
-    return response.data.orders;
-
+    return response.data?.orders || [];
 }
 
-
 // =====================================================
-// SINGLE BUYER ORDER
+// GET SINGLE BUYER ORDER
 // =====================================================
 
 export async function getBuyerOrder(
     orderId: string
 ): Promise<Order> {
 
+    if (!orderId?.trim()) {
+        throw new Error(
+            "Order ID is required."
+        );
+    }
+
     const response =
-        await api.get(
-            `/orders/${orderId}`
+        await api.get<SingleOrderResponse>(
+            `/orders/${encodeURIComponent(orderId)}`
         );
 
+    if (!response.data?.order) {
+        throw new Error(
+            "The server did not return the order."
+        );
+    }
 
     return response.data.order;
-
 }
 
-
 // =====================================================
-// SELLER ORDERS
+// GET SELLER ORDERS
 // =====================================================
 
-export async function getSellerOrders()
-    : Promise<Order[]> {
+export async function getSellerOrders():
+    Promise<Order[]> {
 
     const response =
-        await api.get(
+        await api.get<OrdersResponse>(
             "/seller/orders"
         );
 
-
-    return response.data.orders;
-
+    return response.data?.orders || [];
 }
 
-
 // =====================================================
-// SINGLE SELLER ORDER
+// GET SINGLE SELLER ORDER
 // =====================================================
 
 export async function getSellerOrder(
     orderId: string
 ): Promise<Order> {
 
+    if (!orderId?.trim()) {
+        throw new Error(
+            "Order ID is required."
+        );
+    }
+
     const response =
-        await api.get(
-            `/seller/orders/${orderId}`
+        await api.get<SingleOrderResponse>(
+            `/seller/orders/${encodeURIComponent(orderId)}`
         );
 
+    if (!response.data?.order) {
+        throw new Error(
+            "The server did not return the seller order."
+        );
+    }
 
     return response.data.order;
-
 }
-
 
 // =====================================================
 // UPDATE SELLER ORDER STATUS
@@ -300,57 +314,25 @@ export async function updateSellerOrderStatus(
     status: OrderStatus
 ): Promise<Order> {
 
+    if (!orderId?.trim()) {
+        throw new Error(
+            "Order ID is required."
+        );
+    }
+
     const response =
-        await api.patch(
-
-            `/seller/orders/${orderId}/status`,
-
+        await api.patch<SingleOrderResponse>(
+            `/seller/orders/${encodeURIComponent(orderId)}/status`,
             {
                 status
             }
-
         );
 
+    if (!response.data?.order) {
+        throw new Error(
+            "The server did not return the updated order."
+        );
+    }
 
     return response.data.order;
-
 }
-
-
-// =====================================================
-// ATTACH JWT
-// =====================================================
-
-api.interceptors.request.use(
-
-    (config) => {
-
-        const token =
-            localStorage.getItem(
-                "token"
-            );
-
-
-        if (token) {
-
-            config.headers.Authorization =
-                `Bearer ${token}`;
-
-        }
-
-
-        return config;
-
-    },
-
-    (error) =>
-        Promise.reject(error)
-
-);
-
-
-// =====================================================
-// EXPORT
-// =====================================================
-
-export default api;

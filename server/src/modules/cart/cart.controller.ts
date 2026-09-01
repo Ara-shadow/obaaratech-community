@@ -3,7 +3,6 @@ import type {
     FastifyRequest
 } from "fastify";
 
-
 import {
     fetchUserCart,
     addItemToCart,
@@ -13,205 +12,417 @@ import {
 } from "./cart.service.js";
 
 
+// =====================================================
+// AUTH USER TYPE
+// =====================================================
 
-// =====================================
+interface AuthenticatedRequest
+    extends FastifyRequest {
+
+    user?: {
+        id?: string;
+        sub?: string;
+        userId?: string;
+    };
+}
+
+
+// =====================================================
+// GET USER ID
+// =====================================================
+
+function getUserId(
+    request: AuthenticatedRequest
+): string {
+
+    const userId =
+        request.user?.id ||
+        request.user?.sub ||
+        request.user?.userId;
+
+
+    if (!userId) {
+        throw new Error(
+            "Authenticated user ID could not be determined."
+        );
+    }
+
+
+    return userId;
+}
+
+
+// =====================================================
+// ERROR MESSAGE
+// =====================================================
+
+function getErrorMessage(
+    error: unknown
+): string {
+
+    if (
+        error instanceof Error
+    ) {
+        return error.message;
+    }
+
+    return "An unexpected error occurred.";
+}
+
+
+// =====================================================
 // GET CART
-// =====================================
+// =====================================================
 
 export async function getCartController(
-    request:FastifyRequest,
-    reply:FastifyReply
-){
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
 
-    const user =
-        request.user as {
-            id:string;
-        };
+    try {
+
+        const userId =
+            getUserId(
+                request as AuthenticatedRequest
+            );
 
 
-    const cart =
-        await fetchUserCart(
-            user.id
+        const cart =
+            await fetchUserCart(
+                userId
+            );
+
+
+        return reply.send({
+            success: true,
+            cart
+        });
+
+    } catch (error) {
+
+        request.log.error(
+            error,
+            "Get cart error"
         );
 
 
-    return reply.send({
-
-        success:true,
-
-        cart
-
-    });
-
+        return reply.status(401).send({
+            success: false,
+            message:
+                getErrorMessage(error)
+        });
+    }
 }
 
 
+// =====================================================
+// ADD TO CART
+// =====================================================
 
+interface AddCartRequest
+    extends FastifyRequest {
 
-// =====================================
-// ADD ITEM
-// =====================================
+    Params: {
+        listingId: string;
+    };
+}
+
 
 export async function addCartController(
-    request:FastifyRequest,
-    reply:FastifyReply
-){
+    request: AddCartRequest,
+    reply: FastifyReply
+) {
 
-    const user =
-        request.user as {
-            id:string;
-        };
+    try {
 
-
-    const {
-        listingId
-    } =
-    request.params as {
-        listingId:string;
-    };
+        const userId =
+            getUserId(
+                request as AuthenticatedRequest
+            );
 
 
-    const item =
-        await addItemToCart(
-            user.id,
+        const {
             listingId
+        } = request.params;
+
+
+        if (!listingId) {
+
+            return reply.status(400).send({
+                success: false,
+                message:
+                    "Listing ID is required."
+            });
+
+        }
+
+
+        const cart =
+            await addItemToCart(
+                userId,
+                listingId
+            );
+
+
+        return reply.status(200).send({
+            success: true,
+            message:
+                "Item added to cart successfully.",
+            cart
+        });
+
+    } catch (error) {
+
+        request.log.error(
+            error,
+            "Add cart item error"
         );
 
 
-    return reply.code(201).send({
+        const message =
+            getErrorMessage(error);
 
-        success:true,
 
-        message:"Added to cart",
+        const statusCode =
+            message.includes("own listing")
+                ? 403
+                : message.includes("no longer available")
+                    ? 409
+                    : 400;
 
-        item
 
-    });
-
+        return reply.status(
+            statusCode
+        ).send({
+            success: false,
+            message
+        });
+    }
 }
 
 
-
-
-// =====================================
+// =====================================================
 // UPDATE QUANTITY
-// =====================================
+// =====================================================
+
+interface UpdateCartRequest
+    extends FastifyRequest {
+
+    Params: {
+        itemId: string;
+    };
+
+    Body: {
+        quantity: number;
+    };
+}
+
 
 export async function updateCartController(
-    request:FastifyRequest,
-    reply:FastifyReply
-){
+    request: UpdateCartRequest,
+    reply: FastifyReply
+) {
 
-    const user =
-        request.user as {
-            id:string;
-        };
+    try {
 
-    const {
-        itemId
-    } =
-    request.params as {
-        itemId:string;
-    };
+        const userId =
+            getUserId(
+                request as AuthenticatedRequest
+            );
 
 
-    const {
-        quantity
-    } =
-    request.body as {
-        quantity:number;
-    };
+        const {
+            itemId
+        } = request.params;
 
 
-    const item =
-        await changeCartItemQuantity(
-            user.id,
-            itemId,
+        const {
             quantity
+        } = request.body || {};
+
+
+        if (!Number.isInteger(quantity)) {
+
+            return reply.status(400).send({
+                success: false,
+                message:
+                    "Quantity must be a whole number."
+            });
+
+        }
+
+
+        if (quantity < 1) {
+
+            return reply.status(400).send({
+                success: false,
+                message:
+                    "Quantity must be at least 1."
+            });
+
+        }
+
+
+        const cart =
+            await changeCartItemQuantity(
+                userId,
+                itemId,
+                quantity
+            );
+
+
+        return reply.send({
+            success: true,
+            message:
+                "Cart quantity updated successfully.",
+            cart
+        });
+
+    } catch (error) {
+
+        request.log.error(
+            error,
+            "Update cart quantity error"
         );
 
 
-    return reply.send({
+        const message =
+            getErrorMessage(error);
 
-        success:true,
 
-        item
+        const statusCode =
+            message === "Cart item not found."
+                ? 404
+                : message.includes("no longer available")
+                    ? 409
+                    : 400;
 
-    });
 
+        return reply.status(
+            statusCode
+        ).send({
+            success: false,
+            message
+        });
+    }
 }
 
 
-
-
-// =====================================
+// =====================================================
 // REMOVE ITEM
-// =====================================
+// =====================================================
+
+interface RemoveCartRequest
+    extends FastifyRequest {
+
+    Params: {
+        itemId: string;
+    };
+}
+
 
 export async function removeCartController(
-    request:FastifyRequest,
-    reply:FastifyReply
-){
+    request: RemoveCartRequest,
+    reply: FastifyReply
+) {
 
-    const {
-        itemId
-    } =
-    request.params as {
-        itemId:string;
-    };
+    try {
 
-
-    const user =
-        request.user as {
-            id:string;
-        };
+        const userId =
+            getUserId(
+                request as AuthenticatedRequest
+            );
 
 
-    await removeItemFromCart(
-        user.id,
-        itemId
-    );
+        const {
+            itemId
+        } = request.params;
 
 
-    return reply.send({
+        const cart =
+            await removeItemFromCart(
+                userId,
+                itemId
+            );
 
-        success:true,
 
-        message:"Removed from cart"
+        return reply.send({
+            success: true,
+            message:
+                "Item removed from cart successfully.",
+            cart
+        });
 
-    });
+    } catch (error) {
 
+        request.log.error(
+            error,
+            "Remove cart item error"
+        );
+
+
+        const message =
+            getErrorMessage(error);
+
+
+        const statusCode =
+            message === "Cart item not found."
+                ? 404
+                : 400;
+
+
+        return reply.status(
+            statusCode
+        ).send({
+            success: false,
+            message
+        });
+    }
 }
 
 
-
-
-// =====================================
+// =====================================================
 // CLEAR CART
-// =====================================
+// =====================================================
 
 export async function clearCartController(
-    request:FastifyRequest,
-    reply:FastifyReply
-){
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
 
-    const user =
-        request.user as {
-            id:string;
-        };
+    try {
 
-
-    await emptyCart(
-        user.id
-    );
+        const userId =
+            getUserId(
+                request as AuthenticatedRequest
+            );
 
 
-    return reply.send({
+        const cart =
+            await emptyCart(
+                userId
+            );
 
-        success:true,
 
-        message:"Cart cleared"
+        return reply.send({
+            success: true,
+            message:
+                "Cart cleared successfully.",
+            cart
+        });
 
-    });
+    } catch (error) {
 
+        request.log.error(
+            error,
+            "Clear cart error"
+        );
+
+
+        return reply.status(400).send({
+            success: false,
+            message:
+                getErrorMessage(error)
+        });
+    }
 }

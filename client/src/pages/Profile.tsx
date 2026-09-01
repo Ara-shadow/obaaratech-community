@@ -4,6 +4,23 @@ import {
 } from "react";
 
 import {
+    Link
+} from "react-router-dom";
+
+import {
+    User,
+    Mail,
+    Phone,
+    Save,
+    X,
+    Loader2,
+    CheckCircle2,
+    ArrowLeft,
+    ShieldCheck,
+    Calendar
+} from "lucide-react";
+
+import {
     getProfile,
     updateProfile
 } from "../api/profile";
@@ -15,310 +32,314 @@ import type {
 
 export default function Profile() {
 
+    const [profile, setProfile] = useState<ProfileType | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
 
-    const [
-        profile,
-        setProfile
-    ] = useState<ProfileType | null>(null);
-
-
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
-
-
-    const [
-        saving,
-        setSaving
-    ] = useState(false);
-
-
-    const [
-        form,
-        setForm
-    ] = useState({
-
-        name:"",
-        phone:""
-
+    const [form, setForm] = useState({
+        name: "",
+        phone: "",
     });
 
-
+    // =====================================================
+    // LOAD PROFILE
+    // =====================================================
 
     useEffect(() => {
 
+        async function loadProfile() {
 
-        async function loadProfile(){
-
-            try{
-
-                const data =
-                    await getProfile();
-
-
+            try {
+                const data = await getProfile();
                 setProfile(data);
-
-
                 setForm({
-
-                    name:data.name || "",
-
-                    phone:data.phone || ""
-
+                    name: data.name || "",
+                    phone: data.phone || "",
                 });
-
-
-            }catch(error){
-
-                console.error(
-                    "Profile load error",
-                    error
-                );
-
-            }
-            finally{
-
+            } catch (error) {
+                console.error("Profile load error", error);
+                setErrorMessage("Unable to load profile data.");
+            } finally {
                 setLoading(false);
-
             }
 
         }
-
 
         loadProfile();
 
+    }, []);
 
-    },[]);
+    // =====================================================
+    // HANDLE SUBMIT – PHONE NOW REQUIRED
+    // =====================================================
 
-
-
-    async function handleSubmit(
-        event:React.FormEvent
-    ){
+    async function handleSubmit(event: React.FormEvent) {
 
         event.preventDefault();
 
+        // Validate name
+        if (!form.name.trim()) {
+            setErrorMessage("Name is required.");
+            return;
+        }
 
-        try{
+        // Validate phone – NOW REQUIRED
+        if (!form.phone.trim()) {
+            setErrorMessage("Phone number is required. Customers need it to contact you.");
+            return;
+        }
 
+        // Validate phone format (Nigerian)
+        const phoneRegex = /^(?:\+234|234|0)[789][01]\d{8}$/;
+        if (!phoneRegex.test(form.phone.replace(/\s/g, ""))) {
+            setErrorMessage("Please enter a valid Nigerian phone number (e.g., 08012345678).");
+            return;
+        }
+
+        try {
             setSaving(true);
+            setErrorMessage("");
+            setSuccessMessage("");
 
-
-            const updated =
-                await updateProfile(form);
-
+            const updated = await updateProfile({
+                name: form.name.trim(),
+                phone: form.phone.trim(),
+            });
 
             setProfile(updated);
+            setSuccessMessage("Profile updated successfully!");
 
+            setTimeout(() => {
+                setSuccessMessage("");
+            }, 3000);
 
-            alert(
-                "Profile updated successfully"
-            );
-
-
-        }catch(error){
-
-            console.error(
-                error
-            );
-
-
-            alert(
-                "Update failed"
-            );
-
-
-        }
-        finally{
-
+        } catch (error) {
+            console.error("Update error", error);
+            setErrorMessage("Failed to update profile. Please try again.");
+        } finally {
             setSaving(false);
-
         }
 
     }
 
+    // =====================================================
+    // HANDLE CANCEL
+    // =====================================================
 
-
-    if(loading){
-
-        return (
-
-            <main className="account-page">
-
-                <div className="account-container">
-
-                    Loading profile...
-
-                </div>
-
-            </main>
-
-        );
-
+    function handleCancel() {
+        if (profile) {
+            setForm({
+                name: profile.name || "",
+                phone: profile.phone || "",
+            });
+        }
+        setErrorMessage("");
+        setSuccessMessage("");
     }
 
+    // =====================================================
+    // LOADING
+    // =====================================================
 
+    if (loading) {
+        return (
+            <div className="profile-page">
+                <div className="profile-container">
+                    <div className="profile-loading">
+                        <Loader2 size={32} className="spinning" />
+                        <p>Loading profile...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // =====================================================
+    // PAGE
+    // =====================================================
 
     return (
 
-        <main className="account-page">
+        <div className="profile-page">
 
+            <div className="profile-container">
 
-            <div className="account-container">
+                {/* HEADER */}
+                <div className="profile-header">
 
+                    <Link to="/account" className="profile-back">
+                        <ArrowLeft size={18} />
+                        Back to Account
+                    </Link>
 
-                <section className="account-header">
-
-                    <div className="account-profile">
-
-
-                        <div className="account-avatar">
-
-                            👤
-
-                        </div>
-
-
+                    <div className="profile-title">
+                        <User size={28} />
                         <div>
+                            <h1>My Profile</h1>
+                            <p>Manage your account information</p>
+                        </div>
+                    </div>
 
-                            <h1>
-                                My Profile
-                            </h1>
+                </div>
 
-                            <p>
-                                Manage your Obaaratech account information
-                            </p>
+                {/* MESSAGES */}
+                {successMessage && (
+                    <div className="profile-message success">
+                        <CheckCircle2 size={18} />
+                        <span>{successMessage}</span>
+                    </div>
+                )}
 
+                {errorMessage && (
+                    <div className="profile-message error">
+                        <X size={18} />
+                        <span>{errorMessage}</span>
+                    </div>
+                )}
+
+                {/* PROFILE CARD */}
+                <div className="profile-card">
+
+                    {/* Avatar Section */}
+                    <div className="profile-avatar-section">
+
+                        <div className="profile-avatar">
+                            {form.name?.charAt(0)?.toUpperCase() || "U"}
                         </div>
 
+                        <div className="profile-avatar-info">
+                            <h2>{form.name || "User"}</h2>
+                            <span className="profile-role">
+                                <ShieldCheck size={14} />
+                                {profile?.role || "USER"}
+                            </span>
+                            <span className="profile-member-since">
+                                <Calendar size={14} />
+                                {profile?.createdAt
+                                    ? `Member since ${new Date(profile.createdAt).toLocaleDateString("en-NG", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric"
+                                    })}`
+                                    : "Member"}
+                            </span>
+                        </div>
 
                     </div>
 
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="profile-form">
 
-                </section>
-
-
-
-                <section className="account-info-card">
-
-
-                    <form onSubmit={handleSubmit}>
-
-
-                        <label>
-
-                            Name
-
+                        <div className="profile-form-group">
+                            <label htmlFor="profile-name">
+                                <User size={16} />
+                                Full Name
+                                <span className="required">*</span>
+                            </label>
                             <input
-
+                                id="profile-name"
+                                type="text"
                                 value={form.name}
-
-                                onChange={
-                                    e =>
-                                    setForm({
-
-                                        ...form,
-
-                                        name:e.target.value
-
-                                    })
-                                }
-
+                                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                placeholder="Your full name"
+                                disabled={saving}
+                                required
                             />
+                        </div>
 
-                        </label>
-
-
-
-                        <label>
-
-                            Email
-
+                        <div className="profile-form-group">
+                            <label htmlFor="profile-email">
+                                <Mail size={16} />
+                                Email Address
+                            </label>
                             <input
-
-                                value={
-                                    profile?.email || ""
-                                }
-
+                                id="profile-email"
+                                type="email"
+                                value={profile?.email || ""}
                                 disabled
-
+                                className="profile-disabled"
                             />
+                            <small>Email cannot be changed</small>
+                        </div>
 
-                        </label>
-
-
-
-                        <label>
-
-                            Phone
-
+                        {/* PHONE – NOW REQUIRED */}
+                        <div className="profile-form-group">
+                            <label htmlFor="profile-phone">
+                                <Phone size={16} />
+                                Phone Number
+                                <span className="required">*</span>
+                            </label>
                             <input
-
+                                id="profile-phone"
+                                type="tel"
                                 value={form.phone}
-
-                                onChange={
-                                    e =>
-                                    setForm({
-
-                                        ...form,
-
-                                        phone:e.target.value
-
-                                    })
-                                }
-
+                                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                placeholder="08012345678"
+                                disabled={saving}
+                                required
                             />
+                            <small>
+                                Customers use this to contact you via WhatsApp. 
+                                Must be a valid Nigerian number.
+                            </small>
+                        </div>
 
-                        </label>
-
-
-
-                        <label>
-
-                            Role
-
+                        <div className="profile-form-group">
+                            <label htmlFor="profile-role">
+                                <ShieldCheck size={16} />
+                                Account Role
+                            </label>
                             <input
-
-                                value={
-                                    profile?.role || ""
-                                }
-
+                                id="profile-role"
+                                type="text"
+                                value={profile?.role || "USER"}
                                 disabled
-
+                                className="profile-disabled"
                             />
+                            <small>Role is assigned by the system</small>
+                        </div>
 
-                        </label>
+                        {/* Actions */}
+                        <div className="profile-actions">
 
+                            <button
+                                type="submit"
+                                className="profile-save-btn"
+                                disabled={saving}
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={18} className="spinning" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save size={18} />
+                                        Save Changes
+                                    </>
+                                )}
+                            </button>
 
+                            <button
+                                type="button"
+                                className="profile-cancel-btn"
+                                onClick={handleCancel}
+                                disabled={saving}
+                            >
+                                Cancel
+                            </button>
 
-                        <button
-                            type="submit"
-                            disabled={saving}
-                        >
-
-                            {
-                                saving
-                                ?
-                                "Saving..."
-                                :
-                                "Save Profile"
-                            }
-
-
-                        </button>
-
+                        </div>
 
                     </form>
 
-
-                </section>
-
+                </div>
 
             </div>
 
-
-        </main>
+        </div>
 
     );
 

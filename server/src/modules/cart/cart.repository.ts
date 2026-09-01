@@ -1,335 +1,308 @@
 import { prisma } from "../../lib/prisma.js";
 
+// =====================================================
+// CART INCLUDE
+// =====================================================
 
-// =====================================
+const cartInclude = {
+    items: {
+        orderBy: {
+            createdAt: "desc"
+        },
+        include: {
+            listing: {
+                include: {
+                    images: true,
+                    owner: true,
+                    category: true
+                }
+            }
+        }
+    }
+} as const;
+
+
+// =====================================================
 // GET USER CART
-// =====================================
+// =====================================================
 
 export async function getUserCart(
     userId: string
 ) {
+    let cart = await prisma.cart.findUnique({
+        where: {
+            userId
+        },
+        include: cartInclude
+    });
 
-    let cart =
-        await prisma.cart.findUnique({
+    // -------------------------------------------------
+    // CREATE CART IF USER DOES NOT HAVE ONE
+    // -------------------------------------------------
 
-            where:{
+    if (!cart) {
+        cart = await prisma.cart.create({
+            data: {
                 userId
             },
-
-            include:{
-
-                items:{
-                    include:{
-                        listing:{
-                            include:{
-                                images:true,
-                                owner:true,
-                                category:true
-                            }
-                        }
-                    }
-                }
-
-            }
-
+            include: cartInclude
         });
-
-
- if(!cart){
-
-    cart =
-        await prisma.cart.create({
-
-            data:{
-                userId
-            },
-
-            include:{
-                items:{
-                    include:{
-                        listing:{
-                            include:{
-                                images:true,
-                                owner:true,
-                                category:true
-                            }
-                        }
-                    }
-                }
-            }
-
-        });
-
-}
-
+    }
 
     return cart;
-
 }
 
 
-
-// =====================================
+// =====================================================
 // ADD ITEM TO CART
-// =====================================
+// =====================================================
 
 export async function addCartItem(
-    userId:string,
-    listingId:string
-){
+    userId: string,
+    listingId: string
+) {
 
-    const listing =
-        await prisma.listing.findFirst({
+    // -------------------------------------------------
+    // CHECK LISTING
+    // -------------------------------------------------
 
-            where:{
-
-                id:listingId,
-
-                status:"ACTIVE",
-
-                available:true,
-
-                price:{
-                    not:null
-                }
-
-            },
-
-            select:{
-
-                id:true,
-
-                ownerId:true
-
+    const listing = await prisma.listing.findFirst({
+        where: {
+            id: listingId,
+            status: "ACTIVE",
+            available: true,
+            price: {
+                not: null
             }
+        },
+        select: {
+            id: true,
+            ownerId: true
+        }
+    });
 
-        });
-
-
-    if(!listing){
-
+    if (!listing) {
         throw new Error(
-            "This listing is no longer available to add to your cart"
+            "This listing is no longer available to add to your cart."
         );
-
     }
 
 
-    if(listing.ownerId === userId){
+    // -------------------------------------------------
+    // PREVENT BUYING OWN LISTING
+    // -------------------------------------------------
 
+    if (listing.ownerId === userId) {
         throw new Error(
-            "You cannot add your own listing to your cart"
+            "You cannot add your own listing to your cart."
         );
-
     }
 
-    let cart =
-        await prisma.cart.findUnique({
 
-            where:{
+    // -------------------------------------------------
+    // FIND OR CREATE USER CART
+    // -------------------------------------------------
+
+    let cart = await prisma.cart.findUnique({
+        where: {
+            userId
+        }
+    });
+
+    if (!cart) {
+        cart = await prisma.cart.create({
+            data: {
                 userId
             }
-
         });
-
-
-    if(!cart){
-
-        cart =
-            await prisma.cart.create({
-
-                data:{
-                    userId
-                }
-
-            });
-
     }
 
 
+    // -------------------------------------------------
+    // CHECK EXISTING ITEM
+    // -------------------------------------------------
 
-    const existing =
+    const existingItem =
         await prisma.cartItem.findUnique({
-
-            where:{
-                cartId_listingId:{
-                    cartId:cart.id,
+            where: {
+                cartId_listingId: {
+                    cartId: cart.id,
                     listingId
                 }
             }
-
         });
 
 
+    // -------------------------------------------------
+    // ALREADY IN CART
+    // -------------------------------------------------
 
-    if(existing){
-
-        return existing;
-
+    if (existingItem) {
+        return existingItem;
     }
 
 
+    // -------------------------------------------------
+    // CREATE CART ITEM
+    // -------------------------------------------------
 
     return prisma.cartItem.create({
-
-        data:{
-
-            cartId:cart.id,
-
+        data: {
+            cartId: cart.id,
             listingId,
-
-            quantity:1
-
+            quantity: 1
         }
-
     });
-
 }
 
 
-
-// =====================================
-// UPDATE QUANTITY
-// =====================================
+// =====================================================
+// UPDATE CART ITEM QUANTITY
+// =====================================================
 
 export async function updateCartItemQuantity(
-    userId:string,
-    itemId:string,
-    quantity:number
-){
+    userId: string,
+    itemId: string,
+    quantity: number
+) {
 
-    const item =
-        await prisma.cartItem.findFirst({
+    // -------------------------------------------------
+    // VERIFY CART ITEM BELONGS TO USER
+    // -------------------------------------------------
 
-            where:{
-
-                id:itemId,
-
-                cart:{
-
-                    userId
-
-                }
-
-            },
-
-            select:{
-
-                id:true
-
+    const item = await prisma.cartItem.findFirst({
+        where: {
+            id: itemId,
+            cart: {
+                userId
             }
+        },
+        select: {
+            id: true,
+            listingId: true
+        }
+    });
 
-        });
-
-
-    if(!item){
-
+    if (!item) {
         throw new Error(
-            "Cart item not found"
+            "Cart item not found."
         );
-
     }
 
+
+    // -------------------------------------------------
+    // VERIFY LISTING IS STILL AVAILABLE
+    // -------------------------------------------------
+
+    const listing =
+        await prisma.listing.findFirst({
+            where: {
+                id: item.listingId,
+                status: "ACTIVE",
+                available: true,
+                price: {
+                    not: null
+                }
+            },
+            select: {
+                id: true
+            }
+        });
+
+    if (!listing) {
+        throw new Error(
+            "This listing is no longer available."
+        );
+    }
+
+
+    // -------------------------------------------------
+    // UPDATE
+    // -------------------------------------------------
 
     return prisma.cartItem.update({
-
-        where:{
-            id:itemId
+        where: {
+            id: item.id
         },
-
-        data:{
+        data: {
             quantity
         }
-
     });
-
 }
 
 
-
-// =====================================
-// REMOVE ITEM
-// =====================================
+// =====================================================
+// REMOVE CART ITEM
+// =====================================================
 
 export async function removeCartItem(
-    userId:string,
-    itemId:string
-){
+    userId: string,
+    itemId: string
+) {
 
-    const item =
-        await prisma.cartItem.findFirst({
+    // -------------------------------------------------
+    // VERIFY OWNERSHIP
+    // -------------------------------------------------
 
-            where:{
-
-                id:itemId,
-
-                cart:{
-
-                    userId
-
-                }
-
-            },
-
-            select:{
-
-                id:true
-
+    const item = await prisma.cartItem.findFirst({
+        where: {
+            id: itemId,
+            cart: {
+                userId
             }
+        },
+        select: {
+            id: true
+        }
+    });
 
-        });
-
-
-    if(!item){
-
+    if (!item) {
         throw new Error(
-            "Cart item not found"
+            "Cart item not found."
         );
-
     }
 
 
+    // -------------------------------------------------
+    // DELETE
+    // -------------------------------------------------
+
     return prisma.cartItem.delete({
-
-        where:{
-            id:item.id
+        where: {
+            id: item.id
         }
-
     });
-
 }
 
 
-
-// =====================================
-// CLEAR CART
-// =====================================
+// =====================================================
+// CLEAR USER CART
+// =====================================================
 
 export async function clearUserCart(
-    userId:string
-){
+    userId: string
+) {
 
     const cart =
         await prisma.cart.findUnique({
-
-            where:{
+            where: {
                 userId
+            },
+            select: {
+                id: true
             }
-
         });
 
-
-    if(!cart){
-        return null;
+    if (!cart) {
+        return {
+            count: 0
+        };
     }
 
 
     return prisma.cartItem.deleteMany({
-
-        where:{
-            cartId:cart.id
+        where: {
+            cartId: cart.id
         }
-
     });
-
 }

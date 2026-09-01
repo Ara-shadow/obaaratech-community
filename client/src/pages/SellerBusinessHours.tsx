@@ -7,7 +7,11 @@ import {
     ArrowLeft,
     Clock3,
     Loader2,
-    Save
+    Save,
+    X,
+    CheckCircle2,
+    Calendar,
+    AlertCircle
 } from "lucide-react";
 
 import {
@@ -42,11 +46,17 @@ function normalizeHours(hours: SellerBusinessHour[]): SellerBusinessHour[] {
 }
 
 export default function SellerBusinessHours() {
+
     const [hours, setHours] = useState<SellerBusinessHour[]>(defaultHours);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [hasChanges, setHasChanges] = useState(false);
+
+    // =====================================================
+    // LOAD HOURS
+    // =====================================================
 
     useEffect(() => {
         let mounted = true;
@@ -78,15 +88,40 @@ export default function SellerBusinessHours() {
         };
     }, []);
 
+    // =====================================================
+    // UPDATE DAY
+    // =====================================================
+
     function updateDay(dayOfWeek: number, changes: Partial<SellerBusinessHour>) {
         setHours(current => current.map(hour =>
             hour.dayOfWeek === dayOfWeek
                 ? { ...hour, ...changes }
                 : hour
         ));
+        setHasChanges(true);
+        // Clear previous messages when user makes changes
+        setMessage("");
+        setError("");
     }
 
+    // =====================================================
+    // TOGGLE DAY
+    // =====================================================
+
+    function toggleDay(dayOfWeek: number, isOpen: boolean) {
+        updateDay(dayOfWeek, {
+            isOpen,
+            openingTime: isOpen ? "08:00" : null,
+            closingTime: isOpen ? "18:00" : null
+        });
+    }
+
+    // =====================================================
+    // SAVE HOURS
+    // =====================================================
+
     async function saveHours() {
+
         try {
             setSaving(true);
             setMessage("");
@@ -100,69 +135,325 @@ export default function SellerBusinessHours() {
             })));
 
             setHours(normalizeHours(saved));
-            setMessage("Business hours saved successfully.");
+            setHasChanges(false);
+            setMessage("Business hours saved successfully!");
+
+            // Clear success message after 3 seconds
+            setTimeout(() => {
+                setMessage("");
+            }, 3000);
+
         } catch (requestError: any) {
             console.error("Business hours update error:", requestError);
             setError(requestError?.response?.data?.message || "Unable to save your business hours.");
         } finally {
             setSaving(false);
         }
+
     }
+
+    // =====================================================
+    // RESET CHANGES
+    // =====================================================
+
+    async function resetChanges() {
+        try {
+            setLoading(true);
+            const data = await getSellerBusinessHours();
+            setHours(normalizeHours(data));
+            setHasChanges(false);
+            setMessage("");
+            setError("");
+        } catch (requestError) {
+            console.error("Reset hours error:", requestError);
+            setError("Unable to reload business hours.");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // =====================================================
+    // GET DAY ABBREVIATION
+    // =====================================================
+
+    function getDayAbbrev(day: string): string {
+        return day.substring(0, 3);
+    }
+
+    // =====================================================
+    // LOADING
+    // =====================================================
 
     if (loading) {
         return (
-            <main className="account-page">
-                <div className="account-container account-loading">
-                    <Loader2 size={24} className="spinning" />
-                    <span>Loading business hours...</span>
+            <div className="business-hours-page">
+                <div className="business-hours-container">
+                    <div className="business-hours-loading">
+                        <Loader2 size={32} className="spinning" />
+                        <p>Loading business hours...</p>
+                    </div>
                 </div>
-            </main>
+            </div>
         );
     }
 
+    // =====================================================
+    // PAGE
+    // =====================================================
+
     return (
-        <main className="account-page">
-            <div className="account-container">
-                <section className="account-header">
-                    <div className="account-profile">
-                        <div className="account-avatar"><Clock3 size={30} /></div>
-                        <div>
-                            <h1>Business Hours</h1>
-                            <p>Set when customers can contact and order from you.</p>
-                        </div>
-                    </div>
-                    <a href="/account" className="account-logout-button">
-                        <ArrowLeft size={17} /> Back to account
-                    </a>
-                </section>
 
-                <section className="account-info-card">
-                    <p style={{ marginTop: 0, color: "#4b5563" }}>
-                        Use 24-hour time. A closing time earlier than the opening time means the business stays open overnight. Set <strong>00:00 to 00:00</strong> for a 24-hour day.
-                    </p>
+        <div className="business-hours-page">
 
-                    {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
-                    {message && <p style={{ color: "#15803d" }}>{message}</p>}
+            <div className="business-hours-container">
 
-                    <div style={{ display: "grid", gap: "12px" }}>
-                        {hours.map(hour => (
-                            <div key={hour.dayOfWeek} style={{ display: "grid", gridTemplateColumns: "minmax(105px, 1fr) auto minmax(105px, 1fr) minmax(105px, 1fr)", gap: "12px", alignItems: "center", padding: "12px", border: "1px solid #e5e7eb", borderRadius: "10px" }}>
-                                <strong>{DAYS[hour.dayOfWeek]}</strong>
-                                <label style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                                    <input type="checkbox" checked={hour.isOpen} onChange={event => updateDay(hour.dayOfWeek, { isOpen: event.target.checked, openingTime: event.target.checked ? (hour.openingTime || "08:00") : null, closingTime: event.target.checked ? (hour.closingTime || "18:00") : null })} />
-                                    Open
-                                </label>
-                                <input aria-label={`${DAYS[hour.dayOfWeek]} opening time`} type="time" value={hour.openingTime || ""} disabled={!hour.isOpen} onChange={event => updateDay(hour.dayOfWeek, { openingTime: event.target.value })} />
-                                <input aria-label={`${DAYS[hour.dayOfWeek]} closing time`} type="time" value={hour.closingTime || ""} disabled={!hour.isOpen} onChange={event => updateDay(hour.dayOfWeek, { closingTime: event.target.value })} />
+                {/* =================================================
+                    HEADER
+                ================================================= */}
+
+                <div className="business-hours-header">
+
+                    <div className="business-hours-header-left">
+
+                        <a href="/account" className="business-hours-back">
+                            <ArrowLeft size={18} />
+                            Back to Account
+                        </a>
+
+                        <div className="business-hours-title">
+                            <Clock3 size={28} />
+                            <div>
+                                <h1>Business Hours</h1>
+                                <p>Set when customers can contact and order from you</p>
                             </div>
-                        ))}
+                        </div>
+
                     </div>
 
-                    <button type="button" className="create-listing-button" disabled={saving} onClick={saveHours} style={{ marginTop: "20px" }}>
-                        {saving ? <Loader2 size={18} className="spinning" /> : <Save size={18} />} {saving ? "Saving..." : "Save business hours"}
-                    </button>
-                </section>
+                    <div className="business-hours-header-actions">
+                        {hasChanges && (
+                            <button
+                                type="button"
+                                className="business-hours-reset-btn"
+                                onClick={resetChanges}
+                                disabled={saving}
+                            >
+                                <X size={16} />
+                                Reset
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            className="business-hours-save-btn"
+                            onClick={saveHours}
+                            disabled={saving || !hasChanges}
+                        >
+                            {saving ? (
+                                <>
+                                    <Loader2 size={18} className="spinning" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} />
+                                    Save Hours
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                </div>
+
+                {/* =================================================
+                    MESSAGES
+                ================================================= */}
+
+                {message && (
+                    <div className="business-hours-message success">
+                        <CheckCircle2 size={18} />
+                        <span>{message}</span>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="business-hours-message error">
+                        <AlertCircle size={18} />
+                        <span>{error}</span>
+                    </div>
+                )}
+
+                {/* =================================================
+                    INFO BOX
+                ================================================= */}
+
+                <div className="business-hours-info">
+                    <div className="business-hours-info-icon">
+                        <Clock3 size={18} />
+                    </div>
+                    <div className="business-hours-info-content">
+                        <strong>How it works</strong>
+                        <p>
+                            Set your business hours so customers know when you're available.
+                            Use 24-hour time format (e.g., 08:00 to 18:00).
+                            Toggle a day off by switching the Open/Closed toggle.
+                        </p>
+                    </div>
+                </div>
+
+                {/* =================================================
+                    HOURS GRID
+                ================================================= */}
+
+                <div className="business-hours-grid">
+
+                    {hours.map((hour) => {
+
+                        const dayName = DAYS[hour.dayOfWeek];
+                        const isOpen = hour.isOpen;
+
+                        return (
+
+                            <div
+                                key={hour.dayOfWeek}
+                                className={`business-hours-day ${!isOpen ? "closed" : ""}`}
+                            >
+
+                                <div className="business-hours-day-header">
+
+                                    <div className="business-hours-day-name">
+                                        <span className="business-hours-day-abbrev">
+                                            {getDayAbbrev(dayName)}
+                                        </span>
+                                        <span className="business-hours-day-full">
+                                            {dayName}
+                                        </span>
+                                    </div>
+
+                                    <label className="business-hours-toggle">
+                                        <input
+                                            type="checkbox"
+                                            checked={isOpen}
+                                            onChange={(e) => toggleDay(hour.dayOfWeek, e.target.checked)}
+                                        />
+                                        <span className="business-hours-toggle-slider">
+                                            <span className="business-hours-toggle-label">
+                                                {isOpen ? "Open" : "Closed"}
+                                            </span>
+                                        </span>
+                                    </label>
+
+                                </div>
+
+                                <div className="business-hours-day-times">
+
+                                    <div className="business-hours-time-group">
+                                        <label htmlFor={`open-${hour.dayOfWeek}`}>Opens</label>
+                                        <input
+                                            id={`open-${hour.dayOfWeek}`}
+                                            type="time"
+                                            value={hour.openingTime || ""}
+                                            disabled={!isOpen}
+                                            onChange={(e) => updateDay(hour.dayOfWeek, {
+                                                openingTime: e.target.value || null
+                                            })}
+                                            className={!isOpen ? "disabled" : ""}
+                                        />
+                                    </div>
+
+                                    <span className="business-hours-time-separator">—</span>
+
+                                    <div className="business-hours-time-group">
+                                        <label htmlFor={`close-${hour.dayOfWeek}`}>Closes</label>
+                                        <input
+                                            id={`close-${hour.dayOfWeek}`}
+                                            type="time"
+                                            value={hour.closingTime || ""}
+                                            disabled={!isOpen}
+                                            onChange={(e) => updateDay(hour.dayOfWeek, {
+                                                closingTime: e.target.value || null
+                                            })}
+                                            className={!isOpen ? "disabled" : ""}
+                                        />
+                                    </div>
+
+                                </div>
+
+                                {!isOpen && (
+                                    <div className="business-hours-day-closed-badge">
+                                        <span>Closed</span>
+                                    </div>
+                                )}
+
+                            </div>
+
+                        );
+
+                    })}
+
+                </div>
+
+                {/* =================================================
+                    SAVE FOOTER
+                ================================================= */}
+
+                <div className="business-hours-footer">
+
+                    <div className="business-hours-footer-info">
+                        {hasChanges && (
+                            <span className="business-hours-footer-changes">
+                                <AlertCircle size={16} />
+                                You have unsaved changes
+                            </span>
+                        )}
+                        {!hasChanges && !message && (
+                            <span className="business-hours-footer-saved">
+                                <CheckCircle2 size={16} />
+                                All changes saved
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="business-hours-footer-actions">
+
+                        {hasChanges && (
+                            <button
+                                type="button"
+                                className="business-hours-reset-btn"
+                                onClick={resetChanges}
+                                disabled={saving}
+                            >
+                                <X size={16} />
+                                Reset
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            className="business-hours-save-btn"
+                            onClick={saveHours}
+                            disabled={saving || !hasChanges}
+                        >
+                            {saving ? (
+                                <>
+                                    <Loader2 size={18} className="spinning" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} />
+                                    Save Hours
+                                </>
+                            )}
+                        </button>
+
+                    </div>
+
+                </div>
+
             </div>
-        </main>
+
+        </div>
+
     );
+
 }

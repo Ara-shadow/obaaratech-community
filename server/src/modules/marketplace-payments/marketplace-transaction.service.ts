@@ -1,6 +1,7 @@
 import type {
     Currency,
     MarketplaceTransactionStatus,
+    OrderPaymentMethod,
     Prisma,
     SellerEarningStatus,
     SellerLedgerEntryType,
@@ -19,7 +20,7 @@ export interface CreateMarketplaceTransactionInput {
 
     currency: Currency;
 
-    paymentMethod: Prisma.OrderPaymentMethod;
+    paymentMethod: OrderPaymentMethod;
 
     provider?: string;
 

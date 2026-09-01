@@ -173,6 +173,7 @@ export async function flutterwaveMarketplaceWebhookController(
     // =================================
 
     const secretHash =
+        process.env.FLUTTERWAVE_WEBHOOK_SECRET_HASH ||
         process.env.FLW_SECRET_HASH;
 
     if (

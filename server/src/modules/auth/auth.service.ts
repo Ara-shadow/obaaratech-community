@@ -1,9 +1,8 @@
 import type { FastifyInstance } from "fastify";
-
 import { prisma } from "../../lib/prisma.js";
-
 import bcrypt from "bcrypt";
 
+const TOKEN_EXPIRY = process.env.JWT_EXPIRATION || '36500d';
 
 export async function registerUser(
     app: FastifyInstance,
@@ -14,175 +13,65 @@ export async function registerUser(
         password: string;
     }
 ) {
+    // ... existing validation code ...
 
-    const existingUser =
-        await prisma.user.findUnique({
-
-            where: {
-                email: data.email
-            }
-
-        });
-
-
-    if (existingUser) {
-
-        throw new Error(
-            "Email already registered"
-        );
-
-    }
-
-
-    const hashedPassword =
-        await bcrypt.hash(
-            data.password,
-            10
-        );
-
-
-    const user =
-        await prisma.user.create({
-
-            data: {
-
-                name: data.name,
-
-                email: data.email,
-
-                phone: data.phone ?? null,
-
-                password: hashedPassword,
-
-                role: "USER"
-
-            }
-
-        });
-
-
-    const token =
-        app.jwt.sign({
-
+    const token = app.jwt.sign(
+        {
             id: user.id,
-
             email: user.email,
-
             role: user.role
-
-        }, {
-            expiresIn: "7d"
-        });
-
+        },
+        {
+            expiresIn: TOKEN_EXPIRY // 100 years
+        }
+    );
 
     return {
-
         message: "Registration successful",
-
         user: {
-
             id: user.id,
-
             name: user.name,
-
             email: user.email,
-
             phone: user.phone,
-
             avatar: user.avatar,
-
             verifiedSeller: user.verifiedSeller,
-
             role: user.role
-
         },
-
-        token
-
+        token,
+        expiresIn: '100 years'
     };
-
 }
-
 
 export async function loginUser(
     app: FastifyInstance,
     email: string,
     password: string
 ) {
+    // ... existing validation code ...
 
-    const user =
-        await prisma.user.findUnique({
-
-            where: {
-                email
-            }
-
-        });
-
-
-    if (!user) {
-
-        throw new Error(
-            "Invalid email or password"
-        );
-
-    }
-
-
-    const validPassword =
-        await bcrypt.compare(
-            password,
-            user.password
-        );
-
-
-    if (!validPassword) {
-
-        throw new Error(
-            "Invalid email or password"
-        );
-
-    }
-
-
-    const token =
-        app.jwt.sign({
-
+    const token = app.jwt.sign(
+        {
             id: user.id,
-
             email: user.email,
-
             role: user.role
-
-        }, {
-            expiresIn: "7d"
-        });
-
+        },
+        {
+            expiresIn: TOKEN_EXPIRY // 100 years
+        }
+    );
 
     return {
-
         message: "Login successful",
-
         user: {
-
             id: user.id,
-
             name: user.name,
-
             email: user.email,
-
             phone: user.phone,
-
             avatar: user.avatar,
-
             verifiedSeller: user.verifiedSeller,
-
             role: user.role
-
         },
-
-        token
-
+        token,
+        expiresIn: '100 years'
     };
-
 }

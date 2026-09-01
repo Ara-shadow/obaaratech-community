@@ -12,7 +12,7 @@ import type {
 export async function getListings(): Promise<Listing[]> {
 
     const response =
-        await api.get("/listings");
+        await api.get("/marketplace/listings");
 
     return response.data.listings as Listing[];
 

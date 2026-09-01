@@ -1,96 +1,117 @@
+// src/modules/sellers/seller.routes.ts
 import type { FastifyInstance } from "fastify";
+import { authenticate, authorizeSeller } from "../../middleware/auth.js";
+import { prisma } from "../../lib/prisma.js";
 
+export default async function sellerRoutes(app: FastifyInstance) {
 
-import {
+    // ============================
+    // GET SELLER PROFILE
+    // ============================
+    app.get(
+        "/profile",
+        {
+            preHandler: [authenticate, authorizeSeller]
+        },
+        async (request, reply) => {
+            const user = (request as any).user;
 
-  getSellerProfileController
+            const seller = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    avatar: true,
+                    verifiedSeller: true,
+                    role: true,
+                    createdAt: true,
+                    businessHours: true
+                }
+            });
 
-} from "./seller.controller.js";
+            return {
+                success: true,
+                seller
+            };
+        }
+    );
 
+    // ============================
+    // GET PUBLIC SELLER PROFILE
+    // ============================
+    app.get(
+        "/:id/public",
+        async (request, reply) => {
+            const { id } = request.params as { id: string };
 
-import {
+            const seller = await prisma.user.findUnique({
+                where: { id },
+                select: {
+                    id: true,
+                    name: true,
+                    avatar: true,
+                    verifiedSeller: true,
+                    createdAt: true,
+                    businessHours: true
+                }
+            });
 
-  sellerDashboardController
+            if (!seller) {
+                return reply.code(404).send({
+                    success: false,
+                    message: "Seller not found"
+                });
+            }
 
-} from "./seller.dashboard.controller.js";
+            return {
+                success: true,
+                seller
+            };
+        }
+    );
 
+    // ============================
+    // UPDATE SELLER PROFILE
+    // ============================
+    app.put(
+        "/profile",
+        {
+            preHandler: [authenticate, authorizeSeller]
+        },
+        async (request, reply) => {
+            const user = (request as any).user;
+            const body = request.body as {
+                name?: string;
+                phone?: string;
+                avatar?: string;
+                verifiedSeller?: boolean;
+            };
 
-import {
-    getSellerBusinessHoursController,
-    updateSellerBusinessHoursController
-} from "./seller.hours.controller.js";
+            const updated = await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    name: body.name,
+                    phone: body.phone,
+                    avatar: body.avatar,
+                    verifiedSeller: body.verifiedSeller
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    avatar: true,
+                    verifiedSeller: true,
+                    role: true
+                }
+            });
 
-
-export default async function sellerRoutes(
-
-  app: FastifyInstance
-
-){
-
-
-
-  // ==============================
-  // SELLER DASHBOARD
-  // ==============================
-
-  app.get(
-
-    "/dashboard",
-
-    {
-
-      preHandler:[
-
-        app.authenticate
-
-      ]
-
-    },
-
-    sellerDashboardController
-
-  );
-
-
-
-// ==============================
-// SELLER BUSINESS HOURS
-// ==============================
-
-app.get(
-    "/business-hours",
-    {
-        preHandler: [
-            app.authenticate
-        ]
-    },
-    getSellerBusinessHoursController
-);
-
-
-app.put(
-    "/business-hours",
-    {
-        preHandler: [
-            app.authenticate
-        ]
-    },
-    updateSellerBusinessHoursController
-);
-
-
-  // ==============================
-  // PUBLIC SELLER PROFILE
-  // ==============================
-
-  app.get(
-
-    "/:sellerId",
-
-    getSellerProfileController
-
-  );
-
-
-
+            return {
+                success: true,
+                seller: updated
+            };
+        }
+    );
 }

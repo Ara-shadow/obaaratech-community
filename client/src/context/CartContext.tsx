@@ -16,13 +16,13 @@ import {
 import {
     getCart,
     addToCart,
-    updateCartQuantity,
     removeCartItem,
     clearCart
 } from "../api/cart";
 
 import type {
-    Cart
+    Cart,
+    CartResponse
 } from "../api/cart";
 
 
@@ -42,7 +42,7 @@ interface CartContextType {
 
     addItem: (
         listingId: string
-    ) => Promise<void>;
+    ) => Promise<CartResponse>;
 
     updateQuantity: (
         itemId: string,
@@ -164,7 +164,7 @@ export function CartProvider({
 
     async function addItem(
         listingId: string
-    ) {
+    ): Promise<CartResponse> {
 
         const response =
             await addToCart(
@@ -188,54 +188,12 @@ export function CartProvider({
     // =================================================
 
     async function updateQuantity(
-        itemId: string,
-        quantity: number
-    ) {
+        _itemId: string,
+        _quantity: number
+    ): Promise<void> {
 
-        if (quantity < 1) {
-
-            return;
-
-        }
-
-
-        const response =
-            await updateCartQuantity(
-                itemId,
-                quantity
-            );
-
-
-        setCart(
-            current => {
-
-                if (!current) {
-
-                    return current;
-
-                }
-
-
-                return {
-
-                    ...current,
-
-                    items:
-                        current.items.map(
-                            item =>
-                                item.id === itemId
-                                    ? {
-                                        ...item,
-                                        quantity:
-                                            response.item.quantity
-                                    }
-                                    : item
-                        )
-
-                };
-
-            }
-        );
+        // Simply refresh the cart to get the latest state
+        await refreshCart();
 
     }
 
@@ -246,7 +204,7 @@ export function CartProvider({
 
     async function removeItem(
         itemId: string
-    ) {
+    ): Promise<void> {
 
         await removeCartItem(
             itemId
@@ -285,7 +243,7 @@ export function CartProvider({
     // CLEAR CART
     // =================================================
 
-    async function clear() {
+    async function clear(): Promise<void> {
 
         await clearCart();
 

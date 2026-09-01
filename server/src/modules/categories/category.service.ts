@@ -2,7 +2,12 @@ import {
   createCategory,
   getCategories,
   getCategoryById,
-  getCategoryTree
+  getCategoryTree,
+  getCategoryBySlug,
+  getCategoryChildren,
+  searchCategories,
+  updateCategoryById,
+  deleteCategoryById
 } from "./category.repository.js";
 
 
@@ -42,6 +47,25 @@ export async function createNewCategory(
 }
 
 
+export async function updateExistingCategory(
+  id: string,
+  data: Partial<CreateCategoryInput> & { isActive?: boolean }
+) {
+
+  return updateCategoryById(id, data);
+
+}
+
+
+export async function removeCategory(
+  id: string
+) {
+
+  return deleteCategoryById(id);
+
+}
+
+
 // =====================================================
 // GET ALL CATEGORIES
 // =====================================================
@@ -62,6 +86,45 @@ export async function fetchCategoryById(
 ) {
 
   return getCategoryById(id);
+
+}
+
+
+// =====================================================
+// GET CATEGORY BY SLUG
+// =====================================================
+
+export async function fetchCategoryBySlug(
+  slug: string
+) {
+
+  return getCategoryBySlug(slug);
+
+}
+
+
+// =====================================================
+// GET CATEGORY CHILDREN
+// =====================================================
+
+export async function fetchCategoryChildren(
+  parentId: string
+) {
+
+  return getCategoryChildren(parentId);
+
+}
+
+
+// =====================================================
+// SEARCH CATEGORIES
+// =====================================================
+
+export async function searchCategoriesByName(
+  query: string
+) {
+
+  return searchCategories(query);
 
 }
 

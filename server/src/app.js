@@ -33,6 +33,7 @@ import sellerSubscriptionRoutes from "./modules/sellers/seller.subscription.rout
 import paymentRoutes from "./modules/payments/payment.routes.js";
 import sellerListingRoutes from "./modules/sellers/seller.listings.routes.js";
 import marketplacePaymentRoutes from "./modules/marketplace-payments/marketplace-payment.routes.js";
+import sellerFinanceRoutes from "./modules/seller-finance/seller-finance.routes.js";
 // ===============================
 // BUILD APP
 // ===============================
@@ -224,6 +225,12 @@ export async function buildApp() {
     // ===============================
     await app.register(marketplacePaymentRoutes, {
         prefix: "/api/marketplace/payments"
+    });
+    // ===============================
+    // SELLER FINANCE
+    // ===============================
+    await app.register(sellerFinanceRoutes, {
+        prefix: "/api/seller-finance"
     });
     // ===============================
     // ROOT

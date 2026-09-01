@@ -9,7 +9,7 @@ export type CreateCategoryData = {
 
   name: string;
 
-slug: string;
+  slug: string;
 
   icon?: string;
 
@@ -20,6 +20,8 @@ slug: string;
   parentId?: string;
 
   sortOrder?: number;
+
+  isActive?: boolean;
 
 };
 
@@ -48,7 +50,64 @@ export async function createCategory(
 
       parentId: data.parentId,
 
-      sortOrder: data.sortOrder
+      sortOrder: data.sortOrder ?? 0,
+
+      isActive: data.isActive ?? true
+
+    }
+
+  });
+
+}
+
+
+export async function updateCategoryById(
+  id: string,
+  data: Partial<CreateCategoryData>
+) {
+
+  return prisma.category.update({
+
+    where: {
+
+      id
+
+    },
+
+    data: {
+
+      name: data.name,
+
+      slug: data.slug,
+
+      icon: data.icon,
+
+      image: data.image,
+
+      description: data.description,
+
+      parentId: data.parentId,
+
+      sortOrder: data.sortOrder,
+
+      isActive: data.isActive
+
+    }
+
+  });
+
+}
+
+
+export async function deleteCategoryById(
+  id: string
+) {
+
+  return prisma.category.delete({
+
+    where: {
+
+      id
 
     }
 
@@ -99,6 +158,144 @@ export async function getCategoryById(
       parent: true,
 
       listings: true
+
+    }
+
+  });
+
+}
+
+
+// =====================================================
+// GET CATEGORY BY SLUG
+// =====================================================
+
+export async function getCategoryBySlug(
+  slug: string
+) {
+
+  return prisma.category.findUnique({
+
+    where: {
+
+      slug
+
+    },
+
+    include: {
+
+      children: {
+        orderBy: {
+          name: "asc"
+        }
+      },
+
+      parent: true,
+
+      listings: {
+        take: 10,
+        orderBy: {
+          createdAt: "desc"
+        }
+      }
+
+    }
+
+  });
+
+}
+
+
+// =====================================================
+// GET CATEGORY CHILDREN
+// =====================================================
+
+export async function getCategoryChildren(
+  parentId: string
+) {
+
+  return prisma.category.findMany({
+
+    where: {
+
+      parentId
+
+    },
+
+    orderBy: {
+
+      name: "asc"
+
+    },
+
+    include: {
+
+      children: {
+        orderBy: {
+          name: "asc"
+        }
+      }
+
+    }
+
+  });
+
+}
+
+
+// =====================================================
+// SEARCH CATEGORIES
+// =====================================================
+
+export async function searchCategories(
+  query: string
+) {
+
+  if (!query || query.trim().length === 0) {
+
+    return [];
+
+  }
+
+  return prisma.category.findMany({
+
+    where: {
+
+      OR: [
+
+        {
+
+          name: {
+
+            contains: query,
+
+            mode: "insensitive"
+
+          }
+
+        },
+
+        {
+
+          slug: {
+
+            contains: query.toLowerCase(),
+
+            mode: "insensitive"
+
+          }
+
+        }
+
+      ]
+
+    },
+
+    take: 20,
+
+    orderBy: {
+
+      name: "asc"
 
     }
 

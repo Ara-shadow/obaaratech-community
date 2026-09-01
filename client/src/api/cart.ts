@@ -1,82 +1,129 @@
 import api from "./axios";
 
-import type {
-    Listing
-} from "../types/listing";
 
+// =====================================================
+// TYPES
+// =====================================================
+
+export interface CartImage {
+    id: string;
+    url: string;
+    [key: string]: unknown;
+}
+
+
+export interface CartOwner {
+    id: string;
+    name?: string;
+    email?: string;
+    [key: string]: unknown;
+}
+
+
+export interface CartCategory {
+    id: string;
+    name?: string;
+    [key: string]: unknown;
+}
+
+
+export interface CartListing {
+    id: string;
+    title: string;
+    price: number | null;
+    currency?: "NGN" | "USD" | "GBP" | "EUR" | string | null;
+    location?: string | null;
+    available?: boolean;
+    status?: string;
+    images?: CartImage[];
+    owner?: CartOwner;
+    category?: CartCategory;
+    [key: string]: unknown;
+}
 
 
 export interface CartItem {
-
-    id:string;
-
-    quantity:number;
-
-    listing:Listing;
-
+    id: string;
+    cartId: string;
+    listingId: string;
+    quantity: number;
+    createdAt?: string;
+    updatedAt?: string;
+    listing: CartListing;
 }
-
 
 
 export interface Cart {
-
-    id:string;
-
-    items:CartItem[];
-
+    id: string;
+    userId: string;
+    createdAt?: string;
+    updatedAt?: string;
+    items: CartItem[];
 }
 
 
+export interface CartResponse {
+    success: boolean;
+    message?: string;
+    cart: Cart;
+}
 
-// =====================================
+
+// =====================================================
+// ERROR TYPE
+// =====================================================
+
+export interface ApiErrorResponse {
+    success?: boolean;
+    message?: string;
+}
+
+
+// =====================================================
 // GET CART
-// =====================================
+// =====================================================
 
-export async function getCart():Promise<Cart>{
+export async function getCart(): Promise<Cart> {
 
     const response =
-        await api.get(
+        await api.get<CartResponse>(
             "/cart"
         );
 
 
     return response.data.cart;
-
 }
 
 
-
-// =====================================
+// =====================================================
 // ADD TO CART
-// =====================================
+// =====================================================
 
 export async function addToCart(
-    listingId:string
-){
+    listingId: string
+): Promise<CartResponse> {
 
     const response =
-        await api.post(
+        await api.post<CartResponse>(
             `/cart/${listingId}`
         );
 
 
     return response.data;
-
 }
 
 
-
-// =====================================
-// UPDATE QUANTITY
-// =====================================
+// =====================================================
+// UPDATE CART QUANTITY
+// =====================================================
 
 export async function updateCartQuantity(
-    itemId:string,
-    quantity:number
-){
+    itemId: string,
+    quantity: number
+): Promise<CartResponse> {
 
     const response =
-        await api.patch(
+        await api.patch<CartResponse>(
             `/cart/item/${itemId}`,
             {
                 quantity
@@ -85,43 +132,38 @@ export async function updateCartQuantity(
 
 
     return response.data;
-
 }
 
 
-
-// =====================================
-// REMOVE ITEM
-// =====================================
+// =====================================================
+// REMOVE CART ITEM
+// =====================================================
 
 export async function removeCartItem(
-    itemId:string
-){
+    itemId: string
+): Promise<CartResponse> {
 
     const response =
-        await api.delete(
+        await api.delete<CartResponse>(
             `/cart/item/${itemId}`
         );
 
 
     return response.data;
-
 }
 
 
-
-// =====================================
+// =====================================================
 // CLEAR CART
-// =====================================
+// =====================================================
 
-export async function clearCart(){
+export async function clearCart(): Promise<CartResponse> {
 
     const response =
-        await api.delete(
+        await api.delete<CartResponse>(
             "/cart"
         );
 
 
     return response.data;
-
 }

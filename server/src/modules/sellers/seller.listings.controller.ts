@@ -1,241 +1,243 @@
 import type {
     FastifyReply,
-    FastifyRequest
+    FastifyRequest,
 } from "fastify";
-
 
 import {
     getSellerListings,
     updateSellerListing,
     deleteSellerListing,
-    markListingSold
+    markListingSold,
 } from "./seller.listings.service.js";
 
+// =====================================
+// TYPES
+// =====================================
 
+interface AuthenticatedUser {
+    id: string;
+}
 
-// =================================
+// =====================================
 // GET SELLER LISTINGS
-// =================================
+// =====================================
 
 export async function sellerListingsController(
     request: FastifyRequest,
     reply: FastifyReply
-){
-
+) {
     try {
-
         const user =
-            request.user as {
-                id:string;
-            };
+            request.user as
+                | AuthenticatedUser
+                | undefined;
 
+        if (!user?.id) {
+            return reply.code(401).send({
+                success: false,
+                message: "Unauthorized",
+            });
+        }
 
         const listings =
             await getSellerListings(
                 user.id
             );
 
-
         return reply.send({
-
-            success:true,
-
-            listings
-
+            success: true,
+            listings,
         });
-
-
-    } catch(error:any){
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Unable to retrieve seller listings";
 
         return reply.code(400).send({
-
-            success:false,
-
-            message:error.message
-
+            success: false,
+            message,
         });
-
     }
-
 }
 
-
-
-
-
-// =================================
-// UPDATE LISTING
-// =================================
+// =====================================
+// UPDATE SELLER LISTING
+// =====================================
 
 export async function updateSellerListingController(
     request: FastifyRequest,
     reply: FastifyReply
-){
-
+) {
     try {
-
         const user =
-            request.user as {
-                id:string;
-            };
+            request.user as
+                | AuthenticatedUser
+                | undefined;
 
+        if (!user?.id) {
+            return reply.code(401).send({
+                success: false,
+                message: "Unauthorized",
+            });
+        }
 
         const params =
             request.params as {
-                id:string;
+                id?: string;
             };
 
+        const listingId =
+            params.id?.trim();
+
+        if (!listingId) {
+            return reply.code(400).send({
+                success: false,
+                message:
+                    "Listing ID is required",
+            });
+        }
 
         const listing =
             await updateSellerListing(
-
                 user.id,
-
-                params.id,
-
+                listingId,
                 request.body
-
             );
 
-
         return reply.send({
-
-            success:true,
-
-            listing
-
+            success: true,
+            listing,
         });
-
-
-    } catch(error:any){
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Unable to update listing";
 
         return reply.code(400).send({
-
-            success:false,
-
-            message:error.message
-
+            success: false,
+            message,
         });
-
     }
-
 }
 
-
-
-
-
-// =================================
-// DELETE LISTING
-// =================================
+// =====================================
+// DELETE SELLER LISTING
+// =====================================
 
 export async function deleteSellerListingController(
     request: FastifyRequest,
     reply: FastifyReply
-){
-
+) {
     try {
-
         const user =
-            request.user as {
-                id:string;
-            };
+            request.user as
+                | AuthenticatedUser
+                | undefined;
 
+        if (!user?.id) {
+            return reply.code(401).send({
+                success: false,
+                message: "Unauthorized",
+            });
+        }
 
         const params =
             request.params as {
-                id:string;
+                id?: string;
             };
 
+        const listingId =
+            params.id?.trim();
+
+        if (!listingId) {
+            return reply.code(400).send({
+                success: false,
+                message:
+                    "Listing ID is required",
+            });
+        }
 
         await deleteSellerListing(
-
             user.id,
-
-            params.id
-
+            listingId
         );
 
-
         return reply.send({
-
-            success:true,
-
-            message:"Listing deleted"
-
+            success: true,
+            message:
+                "Listing deleted successfully",
         });
-
-
-    } catch(error:any){
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Unable to delete listing";
 
         return reply.code(400).send({
-
-            success:false,
-
-            message:error.message
-
+            success: false,
+            message,
         });
-
     }
-
 }
 
-
-
-
-
-// =================================
-// MARK SOLD
-// =================================
+// =====================================
+// MARK LISTING SOLD
+// =====================================
 
 export async function markListingSoldController(
     request: FastifyRequest,
     reply: FastifyReply
-){
-
+) {
     try {
-
         const user =
-            request.user as {
-                id:string;
-            };
+            request.user as
+                | AuthenticatedUser
+                | undefined;
 
+        if (!user?.id) {
+            return reply.code(401).send({
+                success: false,
+                message: "Unauthorized",
+            });
+        }
 
         const params =
             request.params as {
-                id:string;
+                id?: string;
             };
 
+        const listingId =
+            params.id?.trim();
+
+        if (!listingId) {
+            return reply.code(400).send({
+                success: false,
+                message:
+                    "Listing ID is required",
+            });
+        }
 
         const listing =
             await markListingSold(
-
                 user.id,
-
-                params.id
-
+                listingId
             );
 
-
         return reply.send({
-
-            success:true,
-
-            listing
-
+            success: true,
+            listing,
         });
-
-
-    } catch(error:any){
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Unable to mark listing as sold";
 
         return reply.code(400).send({
-
-            success:false,
-
-            message:error.message
-
+            success: false,
+            message,
         });
-
     }
-
 }

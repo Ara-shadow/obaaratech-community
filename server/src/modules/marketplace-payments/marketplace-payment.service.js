@@ -393,6 +393,14 @@ export async function verifyMarketplacePayment(input) {
                 status: "CONFIRMED"
             }
         });
+        await tx.orderItem.updateMany({
+            where: {
+                orderId: currentTransaction.orderId
+            },
+            data: {
+                status: "CONFIRMED"
+            }
+        });
         // =============================
         // MARK LISTINGS AS SOLD
         // =============================
@@ -412,7 +420,7 @@ export async function verifyMarketplacePayment(input) {
         // SELLER EARNINGS
         // =============================
         for (const item of currentTransaction.order.items) {
-            const existingEarning = await tx.sellerEarning.findUnique({
+            const existingEarning = await tx.sellerEarning.findFirst({
                 where: {
                     orderItemId: item.id
                 }
@@ -464,16 +472,6 @@ export async function verifyMarketplacePayment(input) {
                 referenceId: currentTransaction.id,
                 description: `Marketplace commission (${commissionRate}%) for ${item.title}`
             }, tx);
-            await tx.listing.update({
-                where: {
-                    id: item.listingId
-                },
-                data: {
-                    status: "SOLD",
-                    available: false,
-                    reservedAt: null
-                }
-            });
         }
         return updatedTransaction;
     });

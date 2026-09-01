@@ -1023,33 +1023,42 @@ if (
 
                 });
 
+                await tx.orderItem.updateMany({
+                    where: {
+                        orderId: currentTransaction.orderId
+                    },
+                    data: {
+                        status: "CONFIRMED"
+                    }
+                });
+
                 // =============================
-// MARK LISTINGS AS SOLD
-// =============================
+                // MARK LISTINGS AS SOLD
+                // =============================
 
-for (
-    const item of currentTransaction.order.items
-) {
+                for (
+                    const item of currentTransaction.order.items
+                ) {
 
-    await tx.listing.update({
+                    await tx.listing.update({
 
-        where: {
-            id: item.listingId
-        },
+                        where: {
+                            id: item.listingId
+                        },
 
-        data: {
+                        data: {
 
-            status: "SOLD",
+                            status: "SOLD",
 
-            available: false,
+                            available: false,
 
-            reservedAt: null
+                            reservedAt: null
 
-        }
+                        }
 
-    });
+                    });
 
-}
+                }
 
                 // =============================
                 // SELLER EARNINGS
@@ -1060,8 +1069,8 @@ for (
                     currentTransaction.order.items
                 ) {
 
-                    const existingEarning =
-                        await tx.sellerEarning.findUnique({
+                        const existingEarning =
+                        await tx.sellerEarning.findFirst({
 
                             where: {
 
@@ -1235,30 +1244,6 @@ for (
                         tx
 
                     );
-
-                    await tx.listing.update({
-
-                        where: {
-
-                            id:
-                                item.listingId
-
-                        },
-
-                        data: {
-
-                            status:
-                                "SOLD",
-
-                            available:
-                                false,
-
-                            reservedAt:
-                                null
-
-                        }
-
-                    });
 
                 }
 

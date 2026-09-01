@@ -1,12 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
-// ==============================
-// GET SELLER PROFILE
-// ==============================
 export async function getSellerProfile(sellerId) {
     const seller = await prisma.user.findUnique({
-        where: {
-            id: sellerId
-        },
+        where: { id: sellerId },
         select: {
             id: true,
             name: true,
@@ -15,42 +10,28 @@ export async function getSellerProfile(sellerId) {
             verifiedSeller: true,
             createdAt: true,
             listings: {
-                where: {
-                    available: true
-                },
+                where: { available: true },
                 include: {
                     images: true,
-                    category: true
+                    category: true,
                 },
-                orderBy: {
-                    createdAt: "desc"
-                }
+                orderBy: { createdAt: "desc" },
             },
             reviews: {
-                select: {
-                    rating: true
-                }
+                select: { rating: true },
             },
             businessHours: {
-                orderBy: {
-                    dayOfWeek: "asc"
-                }
-            }
-        }
+                orderBy: { dayOfWeek: "asc" },
+            },
+        },
     });
     if (!seller) {
         throw new Error("Seller not found");
     }
-    // ==============================
-    // REVIEW CALCULATIONS
-    // ==============================
     const totalReviews = seller.reviews.length;
     const averageRating = totalReviews
         ? seller.reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
         : 0;
-    // ==============================
-    // PUBLIC SELLER PROFILE
-    // ==============================
     return {
         id: seller.id,
         name: seller.name,
@@ -62,6 +43,6 @@ export async function getSellerProfile(sellerId) {
         totalReviews,
         averageRating,
         businessHours: seller.businessHours,
-        listings: seller.listings
+        listings: seller.listings,
     };
 }

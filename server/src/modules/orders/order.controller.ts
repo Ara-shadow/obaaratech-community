@@ -12,10 +12,6 @@ import {
     updateSellerOrderItemStatus
 } from "./order.service.js";
 
-import {
-    initializeFlutterwavePayment
-} from "../marketplace-payments/marketplace-payment.service.js";
-
 // =====================================================
 // TYPES
 // =====================================================
@@ -256,42 +252,12 @@ export async function checkoutController(
                 items
             });
 
-        // =============================================
-        // INITIALIZE FLUTTERWAVE
-        // =============================================
-
-        try {
-            const payment =
-                await initializeFlutterwavePayment(
-                    order.id
-                );
-
-            return reply.code(201).send({
-                success: true,
-
-                message:
-                    "Order created. Continue to Flutterwave to complete payment.",
-
-                order,
-
-                payment
-            });
-        } catch (paymentError) {
-            // Payment initialization failed.
-            // Release reservation.
-
-            const {
-                releaseExpiredOrder
-            } = await import(
-                "./order.service.js"
-            );
-
-            await releaseExpiredOrder(
-                order.id
-            );
-
-            throw paymentError;
-        }
+        return reply.code(201).send({
+            success: true,
+            message:
+                "Order created. Continue to Flutterwave to complete payment.",
+            order
+        });
     } catch (error: any) {
         request.log.error(error);
 

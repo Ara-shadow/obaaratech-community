@@ -1,5 +1,5 @@
-import { getPlansController, getMyPlanController, adminGetSellerPlansController, adminGetSellerPlanController, adminUpdateSellerPlanController } from "./plan.controller.js";
-import { adminOnly } from "../../middleware/role.js";
+import { getPlansController, getMyPlanController, adminGetSellerPlansController, adminGetSellerPlanController, adminUpdateSellerPlanController, } from "./plan.controller.js";
+import { adminOnly, } from "../../middleware/role.js";
 // =================================
 // SELLER PLAN ROUTES
 // =================================
@@ -13,8 +13,8 @@ export default async function planRoutes(app) {
     // =================================
     app.get("/me", {
         preHandler: [
-            app.authenticate
-        ]
+            app.authenticate,
+        ],
     }, getMyPlanController);
     // =================================
     // ADMIN — ALL PLANS
@@ -22,8 +22,8 @@ export default async function planRoutes(app) {
     app.get("/admin", {
         preHandler: [
             app.authenticate,
-            adminOnly
-        ]
+            adminOnly,
+        ],
     }, adminGetSellerPlansController);
     // =================================
     // ADMIN — SINGLE PLAN
@@ -31,8 +31,8 @@ export default async function planRoutes(app) {
     app.get("/admin/:id", {
         preHandler: [
             app.authenticate,
-            adminOnly
-        ]
+            adminOnly,
+        ],
     }, adminGetSellerPlanController);
     // =================================
     // ADMIN — UPDATE PLAN
@@ -40,7 +40,7 @@ export default async function planRoutes(app) {
     app.patch("/admin/:id", {
         preHandler: [
             app.authenticate,
-            adminOnly
-        ]
+            adminOnly,
+        ],
     }, adminUpdateSellerPlanController);
 }

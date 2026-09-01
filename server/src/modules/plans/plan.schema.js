@@ -9,6 +9,7 @@ export const createSellerPlanSchema = z.object({
         .min(2, "Plan name must contain at least 2 characters"),
     price: z
         .number()
+        .finite()
         .nonnegative("Plan price cannot be negative"),
     duration: z
         .number()
@@ -33,7 +34,7 @@ export const createSellerPlanSchema = z.object({
         .optional(),
     isActive: z
         .boolean()
-        .optional()
+        .optional(),
 });
 // =================================
 // UPDATE SELLER PLAN

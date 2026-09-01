@@ -21,7 +21,12 @@ import {
     Plus,
     ShoppingBag,
     Trash2,
-    X
+    X,
+    Package,
+    MapPin,
+    Clock,
+    TrendingUp,
+    AlertCircle
 } from "lucide-react";
 
 import {
@@ -33,43 +38,17 @@ import {
 
 export default function MyListings() {
 
-    const navigate =
-        useNavigate();
-
+    const navigate = useNavigate();
 
     // =====================================================
     // STATE
     // =====================================================
 
-    const [
-        listings,
-        setListings
-    ] = useState<Listing[]>([]);
-
-
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
-
-
-    const [
-        error,
-        setError
-    ] = useState("");
-
-
-    const [
-        actionId,
-        setActionId
-    ] = useState("");
-
-
-    const [
-        successMessage,
-        setSuccessMessage
-    ] = useState("");
-
+    const [listings, setListings] = useState<Listing[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [actionId, setActionId] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
 
     // =====================================================
     // LOAD LISTINGS
@@ -79,106 +58,74 @@ export default function MyListings() {
 
         let mounted = true;
 
-
         async function loadListings() {
 
             try {
-
                 setLoading(true);
-
                 setError("");
 
-
-                const data =
-                    await getMySellerListings();
-
+                const data = await getMySellerListings();
 
                 if (mounted) {
-
-                    setListings(
-                        data
-                    );
-
+                    setListings(data);
                 }
 
-
             } catch (requestError: any) {
-
-                console.error(
-                    "My listings error:",
-                    requestError
-                );
-
+                console.error("My listings error:", requestError);
 
                 if (mounted) {
-
                     setError(
                         requestError?.response?.data?.message ||
                         "Unable to load your listings."
                     );
-
                 }
 
             } finally {
-
                 if (mounted) {
-
                     setLoading(false);
-
                 }
-
             }
 
         }
 
-
         loadListings();
 
-
         return () => {
-
             mounted = false;
-
         };
 
     }, []);
 
+    // =====================================================
+    // STATISTICS
+    // =====================================================
+
+    const totalListings = listings.length;
+    const activeListings = listings.filter(
+        listing => listing.status !== "SOLD" && listing.available !== false
+    ).length;
+    const soldListings = listings.filter(
+        listing => listing.status === "SOLD"
+    ).length;
 
     // =====================================================
     // MARK AS SOLD
     // =====================================================
 
-    async function handleMarkSold(
-        listing: Listing
-    ) {
+    async function handleMarkSold(listing: Listing) {
 
-        const confirmed =
-            window.confirm(
-                `Mark "${listing.title}" as sold?`
-            );
+        const confirmed = window.confirm(
+            `Mark "${listing.title}" as sold?`
+        );
 
-
-        if (!confirmed) {
-            return;
-        }
-
+        if (!confirmed) return;
 
         try {
-
-            setActionId(
-                `sold-${listing.id}`
-            );
-
+            setActionId(`sold-${listing.id}`);
             setError("");
-
             setSuccessMessage("");
 
-
-            const updated =
-                await markListingSold(
-                    listing.id
-                );
-
+            const updated = await markListingSold(listing.id);
 
             setListings(
                 current =>
@@ -190,68 +137,38 @@ export default function MyListings() {
                     )
             );
 
-
-            setSuccessMessage(
-                "Listing marked as sold."
-            );
-
+            setSuccessMessage("Listing marked as sold.");
 
         } catch (requestError: any) {
-
-            console.error(
-                "Mark sold error:",
-                requestError
-            );
-
-
+            console.error("Mark sold error:", requestError);
             setError(
                 requestError?.response?.data?.message ||
                 "Unable to mark listing as sold."
             );
-
         } finally {
-
             setActionId("");
-
         }
 
     }
-
 
     // =====================================================
     // DELETE LISTING
     // =====================================================
 
-    async function handleDelete(
-        listing: Listing
-    ) {
+    async function handleDelete(listing: Listing) {
 
-        const confirmed =
-            window.confirm(
-                `Delete "${listing.title}"? This action cannot be undone.`
-            );
+        const confirmed = window.confirm(
+            `Delete "${listing.title}"? This action cannot be undone.`
+        );
 
-
-        if (!confirmed) {
-            return;
-        }
-
+        if (!confirmed) return;
 
         try {
-
-            setActionId(
-                `delete-${listing.id}`
-            );
-
+            setActionId(`delete-${listing.id}`);
             setError("");
-
             setSuccessMessage("");
 
-
-            await deleteSellerListing(
-                listing.id
-            );
-
+            await deleteSellerListing(listing.id);
 
             setListings(
                 current =>
@@ -261,67 +178,50 @@ export default function MyListings() {
                     )
             );
 
-
-            setSuccessMessage(
-                "Listing deleted successfully."
-            );
-
+            setSuccessMessage("Listing deleted successfully.");
 
         } catch (requestError: any) {
-
-            console.error(
-                "Delete listing error:",
-                requestError
-            );
-
-
+            console.error("Delete listing error:", requestError);
             setError(
                 requestError?.response?.data?.message ||
                 "Unable to delete listing."
             );
-
         } finally {
-
             setActionId("");
-
         }
 
     }
-
 
     // =====================================================
     // FORMAT PRICE
     // =====================================================
 
-   function formatPrice(
-    price: number | null,
-    currency:
-        | "NGN"
-        | "USD"
-        | "GBP"
-        | "EUR" = "NGN"
-) {
+    function formatPrice(price: number | null, currency: string = "NGN") {
 
-    if (
-        price === null ||
-        price === undefined
-    ) {
+        if (price === null || price === undefined) {
+            return "Contact seller";
+        }
 
-        return "Contact seller";
-
-    }
-
-    return new Intl.NumberFormat(
-        "en-NG",
-        {
+        return new Intl.NumberFormat("en-NG", {
             style: "currency",
             currency,
             maximumFractionDigits: 0
+        }).format(price);
+
+    }
+
+    // =====================================================
+    // GET IMAGE URL
+    // =====================================================
+
+    function getImageUrl(url?: string) {
+        if (!url) return "";
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return url;
         }
-    ).format(price);
-
-}
-
+        const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        return `${apiBaseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+    }
 
     // =====================================================
     // PAGE
@@ -329,470 +229,281 @@ export default function MyListings() {
 
     return (
 
-        <main className="my-listings-page">
+        <div className="my-listings-page">
 
+            <div className="my-listings-container">
 
-            {/* =================================================
-                HEADER
-            ================================================= */}
+                {/* =================================================
+                    HEADER
+                ================================================= */}
 
-            <div className="my-listings-header">
+                <div className="my-listings-header">
 
-                <div>
+                    <div className="my-listings-header-left">
 
-                    <Link
-                        to="/account"
-                        className="back-marketplace"
-                    >
+                        <Link to="/account" className="my-listings-back">
+                            <ArrowLeft size={18} />
+                            Back to Account
+                        </Link>
 
-                        <ArrowLeft
-                            size={18}
-                        />
-
-                        Back to Account
-
-                    </Link>
-
-
-                    <div className="my-listings-title-row">
-
-                        <div className="my-listings-icon">
-
-                            <ShoppingBag
-                                size={24}
-                            />
-
-                        </div>
-
-
-                        <div>
-
-                            <h1>
-                                My Listings
-                            </h1>
-
-
-                            <p>
-                                Manage the products and services
-                                you have published.
-                            </p>
-
+                        <div className="my-listings-title">
+                            <ShoppingBag size={28} />
+                            <div>
+                                <h1>My Listings</h1>
+                                <p>Manage your products and services</p>
+                            </div>
                         </div>
 
                     </div>
 
-                </div>
-
-
-                <Link
-                    to="/create-listing"
-                    className="create-listing-button"
-                >
-
-                    <Plus
-                        size={19}
-                    />
-
-                    Create Listing
-
-                </Link>
-
-            </div>
-
-
-            {/* =================================================
-                MESSAGES
-            ================================================= */}
-
-            {error && (
-
-                <div
-                    className="listing-form-message error"
-                    role="alert"
-                >
-
-                    <X
-                        size={19}
-                    />
-
-
-                    <span>
-                        {error}
-                    </span>
+                    <Link
+                        to="/create-listing"
+                        className="btn-primary"
+                    >
+                        <Plus size={18} />
+                        Create Listing
+                    </Link>
 
                 </div>
 
-            )}
+                {/* =================================================
+                    STATS
+                ================================================= */}
 
+                <div className="my-listings-stats">
 
-            {successMessage && (
+                    <div className="my-listings-stat">
+                        <div className="my-listings-stat-icon total">
+                            <Package size={18} />
+                        </div>
+                        <div>
+                            <span>Total</span>
+                            <strong>{totalListings}</strong>
+                        </div>
+                    </div>
 
-                <div
-                    className="listing-form-message success"
-                    role="status"
-                >
+                    <div className="my-listings-stat">
+                        <div className="my-listings-stat-icon active">
+                            <CheckCircle2 size={18} />
+                        </div>
+                        <div>
+                            <span>Active</span>
+                            <strong>{activeListings}</strong>
+                        </div>
+                    </div>
 
-                    <CheckCircle2
-                        size={19}
-                    />
-
-
-                    <span>
-                        {successMessage}
-                    </span>
-
-                </div>
-
-            )}
-
-
-            {/* =================================================
-                LOADING
-            ================================================= */}
-
-            {loading && (
-
-                <div className="my-listings-loading">
-
-                    <Loader2
-                        size={30}
-                        className="spinning"
-                    />
-
-
-                    <p>
-                        Loading your listings...
-                    </p>
+                    <div className="my-listings-stat">
+                        <div className="my-listings-stat-icon sold">
+                            <TrendingUp size={18} />
+                        </div>
+                        <div>
+                            <span>Sold</span>
+                            <strong>{soldListings}</strong>
+                        </div>
+                    </div>
 
                 </div>
 
-            )}
+                {/* =================================================
+                    MESSAGES
+                ================================================= */}
 
+                {error && (
+                    <div className="my-listings-message error">
+                        <X size={18} />
+                        <span>{error}</span>
+                    </div>
+                )}
 
-            {/* =================================================
-                EMPTY
-            ================================================= */}
+                {successMessage && (
+                    <div className="my-listings-message success">
+                        <CheckCircle2 size={18} />
+                        <span>{successMessage}</span>
+                    </div>
+                )}
 
-            {!loading &&
-                !error &&
-                listings.length === 0 && (
+                {/* =================================================
+                    LOADING
+                ================================================= */}
+
+                {loading && (
+
+                    <div className="my-listings-loading">
+                        <Loader2 size={32} className="spinning" />
+                        <p>Loading your listings...</p>
+                    </div>
+
+                )}
+
+                {/* =================================================
+                    EMPTY STATE
+                ================================================= */}
+
+                {!loading && !error && listings.length === 0 && (
 
                     <div className="my-listings-empty">
 
                         <div className="my-listings-empty-icon">
-
-                            <ShoppingBag
-                                size={34}
-                            />
-
+                            <ShoppingBag size={48} />
                         </div>
 
-
-                        <h2>
-                            You have no listings yet
-                        </h2>
-
+                        <h2>No listings yet</h2>
 
                         <p>
                             Start selling on Obaaratech by
                             creating your first listing.
                         </p>
 
-
                         <Link
                             to="/create-listing"
-                            className="create-listing-button"
+                            className="btn-primary"
                         >
-
-                            <Plus
-                                size={19}
-                            />
-
+                            <Plus size={18} />
                             Create Your First Listing
-
                         </Link>
 
                     </div>
 
                 )}
 
+                {/* =================================================
+                    LISTINGS GRID
+                ================================================= */}
 
-            {/* =================================================
-                LISTINGS
-            ================================================= */}
-
-            {!loading &&
-                listings.length > 0 && (
+                {!loading && listings.length > 0 && (
 
                     <div className="my-listings-grid">
 
-                        {listings.map(
-                            listing => (
+                        {listings.map(listing => {
 
-                                <article
-                                    className="seller-listing-card"
+                            const imageUrl = listing.images?.length > 0
+                                ? listing.images[0].url
+                                : null;
+
+                            const isSold = listing.status === "SOLD";
+                            const isActive = !isSold && listing.available !== false;
+
+                            return (
+
+                                <div
                                     key={listing.id}
+                                    className={`my-listings-card ${isSold ? "sold" : ""}`}
                                 >
 
-
-                                    {/* IMAGE */}
-
-                                    <div className="seller-listing-image">
-
-                                        {listing.images?.length > 0 ? (
-
+                                    {/* Image */}
+                                    <div className="my-listings-card-image">
+                                        {imageUrl ? (
                                             <img
-                                                src={
-                                                    listing.images[0].url.startsWith(
-                                                        "http"
-                                                    )
-                                                        ? listing.images[0].url
-                                                        : `http://localhost:5000${listing.images[0].url}`
-                                                }
-                                                alt={
-                                                    listing.title
-                                                }
+                                                src={getImageUrl(imageUrl)}
+                                                alt={listing.title}
                                             />
-
                                         ) : (
-
-                                            <div className="seller-listing-no-image">
-
-                                                <ShoppingBag
-                                                    size={35}
-                                                />
-
+                                            <div className="my-listings-card-no-image">
+                                                <ShoppingBag size={28} />
                                             </div>
-
                                         )}
 
-
-                                        {listing.featured && (
-
-                                            <span className="seller-listing-featured">
-
-                                                Featured
-
-                                            </span>
-
-                                        )}
-
+                                        {/* Status Badge */}
+                                        <span className={`my-listings-card-badge ${isSold ? "sold" : "active"}`}>
+                                            {isSold ? "Sold" : isActive ? "Active" : "Inactive"}
+                                        </span>
                                     </div>
 
+                                    {/* Content */}
+                                    <div className="my-listings-card-content">
 
-                                    {/* CONTENT */}
-
-                                    <div className="seller-listing-content">
-
-                                        <div className="seller-listing-meta">
-
-                                            <span>
-                                                {
-                                                    listing.type ||
-                                                    "PRODUCT"
-                                                }
+                                        <div className="my-listings-card-meta">
+                                            <span className="my-listings-card-type">
+                                                {listing.type || "PRODUCT"}
                                             </span>
-
-
                                             {listing.category && (
-
-                                                <span>
-                                                    {
-                                                        listing.category.name
-                                                    }
+                                                <span className="my-listings-card-category">
+                                                    {listing.category.name}
                                                 </span>
-
                                             )}
-
                                         </div>
 
-
-                                        <h2>
-
+                                        <h3 className="my-listings-card-title">
                                             {listing.title}
+                                        </h3>
 
-                                        </h2>
-
-
-                                        <p className="seller-listing-location">
-
-                                            {listing.location ||
-                                                "Location not specified"}
-
-                                        </p>
-
-
-                                        <strong className="seller-listing-price">
-
-                                         {formatPrice(
-    listing.price,
-    listing.currency ?? "NGN"
-)}
-
-                                        </strong>
-
-
-                                        <div className="seller-listing-status">
-
-                                            <span
-                                                className={
-                                                    listing.status === "SOLD"
-                                                        ? "status-sold"
-                                                        : listing.available === false
-                                                            ? "status-unavailable"
-                                                            : "status-active"
-                                                }
-                                            >
-
-                                                {listing.status === "SOLD"
-                                                    ? "Sold"
-                                                    : listing.available === false
-                                                        ? "Unavailable"
-                                                        : "Active"}
-
-                                            </span>
-
+                                        <div className="my-listings-card-location">
+                                            <MapPin size={14} />
+                                            <span>{listing.location || "Location not specified"}</span>
                                         </div>
 
-                                    </div>
+                                        <div className="my-listings-card-price">
+                                            {formatPrice(listing.price, listing.currency ?? "NGN")}
+                                        </div>
 
-
-                                    {/* ACTIONS */}
-
-                                    <div className="seller-listing-actions">
-
-
-                                        {/* VIEW */}
-
-                                        <button
-                                            type="button"
-                                            className="seller-action-button view"
-                                            onClick={() =>
-                                                navigate(
-                                                    `/product/${listing.id}`
-                                                )
-                                            }
-                                        >
-
-                                            <Eye
-                                                size={17}
-                                            />
-
-                                            View
-
-                                        </button>
-
-
-                                        {/* EDIT */}
-
-                                        <button
-                                            type="button"
-                                            className="seller-action-button edit"
-                                            onClick={() =>
-                                                navigate(
-                                                    `/product/${listing.id}?edit=true`
-                                                )
-                                            }
-                                        >
-
-                                            <Pencil
-                                                size={17}
-                                            />
-
-                                            Edit
-
-                                        </button>
-
-
-                                        {/* SOLD */}
-
-                                        {listing.status !== "SOLD" && (
+                                        {/* Actions */}
+                                        <div className="my-listings-card-actions">
 
                                             <button
                                                 type="button"
-                                                className="seller-action-button sold"
-                                                disabled={
-                                                    actionId ===
-                                                    `sold-${listing.id}`
-                                                }
-                                                onClick={() =>
-                                                    handleMarkSold(
-                                                        listing
-                                                    )
-                                                }
+                                                className="my-listings-card-action view"
+                                                onClick={() => navigate(`/product/${listing.id}`)}
                                             >
-
-                                                {actionId ===
-                                                    `sold-${listing.id}` ? (
-
-                                                    <Loader2
-                                                        size={17}
-                                                        className="spinning"
-                                                    />
-
-                                                ) : (
-
-                                                    <CheckCircle2
-                                                        size={17}
-                                                    />
-
-                                                )}
-
-                                                Sold
-
+                                                <Eye size={16} />
+                                                View
                                             </button>
 
-                                        )}
+                                            <button
+                                                type="button"
+                                                className="my-listings-card-action edit"
+                                                onClick={() => navigate(`/product/${listing.id}?edit=true`)}
+                                            >
+                                                <Pencil size={16} />
+                                                Edit
+                                            </button>
 
-
-                                        {/* DELETE */}
-
-                                        <button
-                                            type="button"
-                                            className="seller-action-button delete"
-                                            disabled={
-                                                actionId ===
-                                                `delete-${listing.id}`
-                                            }
-                                            onClick={() =>
-                                                handleDelete(
-                                                    listing
-                                                )
-                                            }
-                                        >
-
-                                            {actionId ===
-                                                `delete-${listing.id}` ? (
-
-                                                <Loader2
-                                                    size={17}
-                                                    className="spinning"
-                                                />
-
-                                            ) : (
-
-                                                <Trash2
-                                                    size={17}
-                                                />
-
+                                            {!isSold && (
+                                                <button
+                                                    type="button"
+                                                    className="my-listings-card-action sold"
+                                                    disabled={actionId === `sold-${listing.id}`}
+                                                    onClick={() => handleMarkSold(listing)}
+                                                >
+                                                    {actionId === `sold-${listing.id}` ? (
+                                                        <Loader2 size={16} className="spinning" />
+                                                    ) : (
+                                                        <CheckCircle2 size={16} />
+                                                    )}
+                                                    Sold
+                                                </button>
                                             )}
 
-                                            Delete
+                                            <button
+                                                type="button"
+                                                className="my-listings-card-action delete"
+                                                disabled={actionId === `delete-${listing.id}`}
+                                                onClick={() => handleDelete(listing)}
+                                            >
+                                                {actionId === `delete-${listing.id}` ? (
+                                                    <Loader2 size={16} className="spinning" />
+                                                ) : (
+                                                    <Trash2 size={16} />
+                                                )}
+                                                Delete
+                                            </button>
 
-                                        </button>
+                                        </div>
 
                                     </div>
 
-                                </article>
+                                </div>
 
-                            )
-                        )}
+                            );
+
+                        })}
 
                     </div>
 
                 )}
 
-        </main>
+            </div>
+
+        </div>
 
     );
 

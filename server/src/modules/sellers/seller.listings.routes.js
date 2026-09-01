@@ -1,26 +1,38 @@
-import { sellerListingsController, updateSellerListingController, deleteSellerListingController, markListingSoldController } from "./seller.listings.controller.js";
+import { sellerListingsController, updateSellerListingController, deleteSellerListingController, markListingSoldController, } from "./seller.listings.controller.js";
+// =====================================
+// SELLER LISTING ROUTES
+// =====================================
 export default async function sellerListingRoutes(app) {
+    // =====================================
+    // GET SELLER LISTINGS
+    // =====================================
     app.get("/listings", {
         preHandler: [
-            app.authenticate
-        ]
-    }, async (request, reply) => {
-        console.log("SELLER LISTINGS ROUTE HIT");
-        return sellerListingsController(request, reply);
-    });
+            app.authenticate,
+        ],
+    }, sellerListingsController);
+    // =====================================
+    // UPDATE SELLER LISTING
+    // =====================================
     app.patch("/listings/:id", {
         preHandler: [
-            app.authenticate
-        ]
+            app.authenticate,
+        ],
     }, updateSellerListingController);
+    // =====================================
+    // DELETE SELLER LISTING
+    // =====================================
     app.delete("/listings/:id", {
         preHandler: [
-            app.authenticate
-        ]
+            app.authenticate,
+        ],
     }, deleteSellerListingController);
+    // =====================================
+    // MARK LISTING AS SOLD
+    // =====================================
     app.patch("/listings/:id/sold", {
         preHandler: [
-            app.authenticate
-        ]
+            app.authenticate,
+        ],
     }, markListingSoldController);
 }

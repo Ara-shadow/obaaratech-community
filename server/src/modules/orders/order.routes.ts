@@ -1,100 +1,184 @@
-import type {
-    FastifyInstance
-} from "fastify";
+// src/modules/orders/order.routes.ts
+import type { FastifyInstance } from "fastify";
+import { authenticate } from "../../middleware/auth.js";
+import { prisma } from "../../lib/prisma.js";
 
-import {
-    checkoutController,
-    getBuyerOrdersController,
-    getBuyerOrderController,
-    getSellerOrdersController,
-    getSellerOrderController,
-    updateSellerOrderStatusController
-} from "./order.controller.js";
+export default async function orderRoutes(app: FastifyInstance) {
 
-export default async function orderRoutes(
-    app: FastifyInstance
-) {
-    // =============================================
-    // CHECKOUT
-    // POST /api/checkout
-    // =============================================
-
+    // ============================
+    // CREATE ORDER
+    // ============================
     app.post(
-        "/checkout",
+        "/orders",
         {
-            preHandler:
-                app.authenticate
+            preHandler: [authenticate]
         },
-        checkoutController
+        async (request, reply) => {
+            const user = (request as any).user;
+            const body = request.body as {
+                deliveryAddress: string;
+                phone: string;
+                note?: string;
+                paymentMethod?: string;
+            };
+
+            // Get cart
+            const cart = await prisma.cart.findUnique({
+                where: { userId: user.id },
+                include: {
+                    items: {
+                        include: {
+                            listing: true
+                        }
+                    }
+                }
+            });
+
+            if (!cart || cart.items.length === 0) {
+                return reply.code(400).send({
+                    success: false,
+                    message: "Cart is empty"
+                });
+            }
+
+            // Calculate totals
+            let subtotal = 0;
+            const orderItems = [];
+
+            for (const item of cart.items) {
+                const price = item.listing.price || 0;
+                const itemTotal = price * item.quantity;
+                subtotal += itemTotal;
+                
+                orderItems.push({
+                    listingId: item.listingId,
+                    sellerId: item.listing.ownerId,
+                    title: item.listing.title,
+                    unitPrice: price,
+                    quantity: item.quantity,
+                    subtotal: itemTotal
+                });
+            }
+
+            const deliveryFee = 0;
+            const total = subtotal + deliveryFee;
+
+            // Create order
+            const order = await prisma.order.create({
+                data: {
+                    orderNumber: `ORD-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                    buyerId: user.id,
+                    subtotal,
+                    deliveryFee,
+                    total,
+                    paymentMethod: body.paymentMethod as any || "CASH_ON_DELIVERY",
+                    deliveryAddress: body.deliveryAddress,
+                    phone: body.phone,
+                    note: body.note,
+                    items: {
+                        create: orderItems
+                    }
+                },
+                include: {
+                    items: {
+                        include: {
+                            listing: {
+                                include: {
+                                    images: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Clear cart
+            await prisma.cartItem.deleteMany({
+                where: { cartId: cart.id }
+            });
+
+            return {
+                success: true,
+                order
+            };
+        }
     );
 
-    // =============================================
-    // BUYER ORDERS
-    // GET /api/orders
-    // =============================================
-
+    // ============================
+    // GET BUYER ORDERS
+    // ============================
     app.get(
         "/orders",
         {
-            preHandler:
-                app.authenticate
+            preHandler: [authenticate]
         },
-        getBuyerOrdersController
+        async (request, reply) => {
+            const user = (request as any).user;
+
+            const orders = await prisma.order.findMany({
+                where: { buyerId: user.id },
+                include: {
+                    items: {
+                        include: {
+                            listing: {
+                                include: {
+                                    images: true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: { createdAt: "desc" }
+            });
+
+            return {
+                success: true,
+                orders
+            };
+        }
     );
 
-    // =============================================
-    // BUYER ORDER
-    // GET /api/orders/:id
-    // =============================================
-
+    // ============================
+    // GET ORDER BY ID
+    // ============================
     app.get(
         "/orders/:id",
         {
-            preHandler:
-                app.authenticate
+            preHandler: [authenticate]
         },
-        getBuyerOrderController
-    );
+        async (request, reply) => {
+            const { id } = request.params as { id: string };
+            const user = (request as any).user;
 
-    // =============================================
-    // SELLER ORDERS
-    // GET /api/seller/orders
-    // =============================================
+            const order = await prisma.order.findFirst({
+                where: {
+                    id,
+                    buyerId: user.id
+                },
+                include: {
+                    items: {
+                        include: {
+                            listing: {
+                                include: {
+                                    images: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
-    app.get(
-        "/seller/orders",
-        {
-            preHandler:
-                app.authenticate
-        },
-        getSellerOrdersController
-    );
+            if (!order) {
+                return reply.code(404).send({
+                    success: false,
+                    message: "Order not found"
+                });
+            }
 
-    // =============================================
-    // SELLER ORDER
-    // GET /api/seller/orders/:id
-    // =============================================
-
-    app.get(
-        "/seller/orders/:id",
-        {
-            preHandler:
-                app.authenticate
-        },
-        getSellerOrderController
-    );
-
-    // =============================================
-    // SELLER ORDER STATUS
-    // PATCH /api/seller/orders/:id/status
-    // =============================================
-
-    app.patch(
-        "/seller/orders/:id/status",
-        {
-            preHandler:
-                app.authenticate
-        },
-        updateSellerOrderStatusController
+            return {
+                success: true,
+                order
+            };
+        }
     );
 }

@@ -367,7 +367,7 @@ export async function markOrderPaymentCompleted(orderId, tx) {
 // FIND EXISTING EARNING
 // =====================================
 export async function getSellerEarningByOrderItem(orderItemId) {
-    return prisma.sellerEarning.findUnique({
+    return prisma.sellerEarning.findFirst({
         where: {
             orderItemId
         }

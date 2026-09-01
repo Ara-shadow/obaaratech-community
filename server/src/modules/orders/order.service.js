@@ -1,67 +1,315 @@
 import { prisma } from "../../lib/prisma.js";
-import { createOrder, getBuyerOrders, getBuyerOrderById, getSellerOrders, getSellerOrder, updateSellerOrderItemStatus } from "./order.repository.js";
-import { sendNotification } from "../notifications/notifications.service.js";
-// =====================================
-// DELIVERY FEE
-// =====================================
-function calculateDeliveryFee(deliveryAddress) {
-    // Keep this simple for now.
-    // We can introduce location-based delivery
-    // pricing later.
-    if (!deliveryAddress.trim()) {
-        return 0;
+// =====================================================
+// PAYMENT RESERVATION WINDOW
+// =====================================================
+const PAYMENT_RESERVATION_MINUTES = 30;
+function calculateOverallOrderStatus(statuses) {
+    if (statuses.length === 0) {
+        return "PENDING";
     }
-    return 0;
+    if (statuses.every((status) => status === "CANCELLED")) {
+        return "CANCELLED";
+    }
+    if (statuses.every((status) => status === "DELIVERED")) {
+        return "DELIVERED";
+    }
+    if (statuses.some((status) => status === "SHIPPED")) {
+        return "SHIPPED";
+    }
+    if (statuses.some((status) => status === "READY")) {
+        return "READY";
+    }
+    if (statuses.some((status) => status === "PROCESSING")) {
+        return "PROCESSING";
+    }
+    if (statuses.some((status) => status === "CONFIRMED")) {
+        return "CONFIRMED";
+    }
+    return "PENDING";
 }
-// =====================================
-// ORDER NUMBER
-// =====================================
-function generateOrderNumber() {
-    const timestamp = Date.now()
-        .toString()
-        .slice(-8);
-    const random = Math.floor(1000 +
-        Math.random() * 9000);
-    return `OBA-${timestamp}-${random}`;
+function validateSellerStatusTransition(currentStatus, nextStatus) {
+    const progressOrder = [
+        "PENDING",
+        "CONFIRMED",
+        "PROCESSING",
+        "READY",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED",
+    ];
+    const currentIndex = progressOrder.indexOf(currentStatus);
+    const nextIndex = progressOrder.indexOf(nextStatus);
+    if (currentIndex === -1 || nextIndex === -1) {
+        throw new Error("Unsupported order status update");
+    }
+    if (currentStatus === "DELIVERED" || currentStatus === "CANCELLED") {
+        throw new Error("This order item is already in a terminal state");
+    }
+    if (nextStatus === "CANCELLED") {
+        return;
+    }
+    if (nextIndex < currentIndex) {
+        throw new Error("Order status cannot move backward");
+    }
 }
-// =====================================
-// CREATE ORDER / CHECKOUT
-// =====================================
-export async function checkout(buyerId, input) {
-    // =================================
-    // VALIDATE INPUT
-    // =================================
-    const deliveryAddress = input.deliveryAddress?.trim();
-    const phone = input.phone?.trim();
-    if (!deliveryAddress) {
-        throw new Error("Delivery address is required");
-    }
-    if (!phone) {
-        throw new Error("Phone number is required");
-    }
-    if (input.paymentMethod !== "FLUTTERWAVE") {
-        throw new Error("Marketplace payments must be processed through Flutterwave");
-    }
-    // =================================
-    // GET BUYER CART
-    // =================================
-    const cart = await prisma.cart.findUnique({
+// =====================================================
+// CREATE ORDER
+// =====================================================
+export async function createOrder(data) {
+    return prisma.$transaction(async (tx) => {
+        if (data.items.length === 0) {
+            throw new Error("Your cart is empty");
+        }
+        const reservedAt = new Date();
+        const paymentExpiresAt = new Date(reservedAt.getTime() +
+            PAYMENT_RESERVATION_MINUTES * 60 * 1000);
+        // =================================================
+        // RESERVE LISTINGS
+        // =================================================
+        for (const item of data.items) {
+            const reservation = await tx.listing.updateMany({
+                where: {
+                    id: item.listingId,
+                    status: "ACTIVE",
+                    available: true
+                },
+                data: {
+                    status: "RESERVED",
+                    available: false,
+                    reservedAt
+                }
+            });
+            if (reservation.count !== 1) {
+                throw new Error("One or more listings are no longer available");
+            }
+        }
+        // =================================================
+        // CREATE ORDER
+        // =================================================
+        const order = await tx.order.create({
+            data: {
+                orderNumber: data.orderNumber,
+                buyerId: data.buyerId,
+                subtotal: data.subtotal,
+                deliveryFee: data.deliveryFee,
+                total: data.total,
+                currency: data.currency,
+                paymentMethod: data.paymentMethod,
+                paymentStatus: "PENDING",
+                status: "PENDING",
+                paymentExpiresAt,
+                deliveryAddress: data.deliveryAddress,
+                phone: data.phone,
+                note: data.note,
+                // =====================================
+                // ORDER PAYMENT
+                // =====================================
+                payment: {
+                    create: {
+                        amount: data.total,
+                        currency: data.currency,
+                        paymentMethod: data.paymentMethod,
+                        status: "PENDING",
+                        provider: data.paymentMethod ===
+                            "FLUTTERWAVE"
+                            ? "FLUTTERWAVE"
+                            : null
+                    }
+                },
+                // =====================================
+                // ORDER ITEMS
+                // =====================================
+                items: {
+                    create: data.items.map((item) => ({
+                        listingId: item.listingId,
+                        sellerId: item.sellerId,
+                        title: item.title,
+                        unitPrice: item.unitPrice,
+                        quantity: item.quantity,
+                        subtotal: item.subtotal,
+                        status: "PENDING"
+                    }))
+                }
+            },
+            include: {
+                payment: true,
+                buyer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        whatsapp: true
+                    }
+                },
+                items: {
+                    include: {
+                        listing: {
+                            include: {
+                                images: true
+                            }
+                        },
+                        seller: {
+                            select: {
+                                id: true,
+                                name: true,
+                                phone: true,
+                                whatsapp: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        // =================================================
+        // CLEAR CART
+        // =================================================
+        await tx.cartItem.deleteMany({
+            where: {
+                cart: {
+                    userId: data.buyerId
+                }
+            }
+        });
+        return order;
+    });
+}
+// =====================================================
+// GET BUYER ORDERS
+// =====================================================
+export async function getBuyerOrders(buyerId) {
+    return prisma.order.findMany({
         where: {
-            userId: buyerId
+            buyerId
         },
         include: {
+            payment: true,
             items: {
                 include: {
                     listing: {
                         include: {
-                            owner: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    phone: true,
-                                    whatsapp: true
-                                }
-                            },
+                            images: true
+                        }
+                    },
+                    seller: {
+                        select: {
+                            id: true,
+                            name: true,
+                            phone: true,
+                            whatsapp: true
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
+    });
+}
+// =====================================================
+// GET SINGLE BUYER ORDER
+// =====================================================
+export async function getBuyerOrderById(buyerId, orderId) {
+    return prisma.order.findFirst({
+        where: {
+            id: orderId,
+            buyerId
+        },
+        include: {
+            payment: true,
+            items: {
+                include: {
+                    listing: {
+                        include: {
+                            images: true
+                        }
+                    },
+                    seller: {
+                        select: {
+                            id: true,
+                            name: true,
+                            phone: true,
+                            whatsapp: true
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+// =====================================================
+// GET SELLER ORDERS
+// =====================================================
+export async function getSellerOrders(sellerId) {
+    return prisma.order.findMany({
+        where: {
+            items: {
+                some: {
+                    sellerId
+                }
+            }
+        },
+        include: {
+            payment: true,
+            buyer: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    whatsapp: true
+                }
+            },
+            items: {
+                where: {
+                    sellerId
+                },
+                include: {
+                    listing: {
+                        include: {
+                            images: true
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
+    });
+}
+// =====================================================
+// GET SINGLE SELLER ORDER
+// =====================================================
+export async function getSellerOrder(sellerId, orderId) {
+    return prisma.order.findFirst({
+        where: {
+            id: orderId,
+            items: {
+                some: {
+                    sellerId
+                }
+            }
+        },
+        include: {
+            payment: true,
+            buyer: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true,
+                    whatsapp: true
+                }
+            },
+            items: {
+                where: {
+                    sellerId
+                },
+                include: {
+                    listing: {
+                        include: {
                             images: true
                         }
                     }
@@ -69,192 +317,192 @@ export async function checkout(buyerId, input) {
             }
         }
     });
-    if (!cart || cart.items.length === 0) {
-        throw new Error("Your cart is empty");
-    }
-    // =================================
-    // VALIDATE CART ITEMS
-    // =================================
-    const orderItems = cart.items.map((cartItem) => {
-        const listing = cartItem.listing;
-        // -----------------------------
-        // LISTING STATUS
-        // -----------------------------
-        if (listing.status !== "ACTIVE") {
-            throw new Error(`"${listing.title}" is no longer available for purchase`);
-        }
-        // -----------------------------
-        // LISTING AVAILABILITY
-        // -----------------------------
-        if (!listing.available) {
-            throw new Error(`"${listing.title}" is currently unavailable`);
-        }
-        // -----------------------------
-        // LISTING PRICE
-        // -----------------------------
-        if (listing.price === null ||
-            listing.price === undefined) {
-            throw new Error(`"${listing.title}" does not have a valid price`);
-        }
-        // -----------------------------
-        // SELLER
-        // -----------------------------
-        if (!listing.ownerId) {
-            throw new Error(`"${listing.title}" has no valid seller`);
-        }
-        if (listing.ownerId === buyerId) {
-            throw new Error("You cannot order your own listing");
-        }
-        // -----------------------------
-        // QUANTITY
-        // -----------------------------
-        if (cartItem.quantity < 1) {
-            throw new Error(`Invalid quantity for "${listing.title}"`);
-        }
-        const unitPrice = listing.price;
-        const subtotal = unitPrice *
-            cartItem.quantity;
-        return {
-            listingId: listing.id,
-            sellerId: listing.ownerId,
-            title: listing.title,
-            unitPrice,
-            quantity: cartItem.quantity,
-            subtotal
-        };
-    });
-    // =================================
-    // CALCULATE TOTALS
-    // =================================
-    const subtotal = orderItems.reduce((total, item) => total +
-        item.subtotal, 0);
-    const deliveryFee = calculateDeliveryFee(deliveryAddress);
-    const total = subtotal +
-        deliveryFee;
-    // =================================
-    // CREATE ORDER
-    // =================================
-    const order = await createOrder({
-        orderNumber: generateOrderNumber(),
-        buyerId,
-        subtotal,
-        deliveryFee,
-        total,
-        currency: "NGN",
-        paymentMethod: input.paymentMethod,
-        deliveryAddress,
-        phone,
-        note: input.note?.trim(),
-        items: orderItems
-    });
-    // =================================
-    // NOTIFY SELLERS
-    // =================================
-    //
-    // One order can contain products
-    // belonging to multiple sellers.
-    //
-    // Each seller receives only ONE
-    // notification for this order,
-    // containing the items belonging
-    // to that seller.
-    // =================================
-    const sellerItems = new Map();
-    for (const item of order.items) {
-        const sellerId = item.sellerId;
-        const sellerName = item.seller?.name ||
-            "A customer";
-        const existing = sellerItems.get(sellerId);
-        if (existing) {
-            existing.titles.push(item.title);
-        }
-        else {
-            sellerItems.set(sellerId, {
-                sellerName,
-                titles: [
-                    item.title
-                ]
-            });
-        }
-    }
-    // =================================
-    // SEND SELLER NOTIFICATIONS
-    // =================================
-    const notificationJobs = Array.from(sellerItems.entries()).map(async ([sellerId, sellerData]) => {
-        const itemText = sellerData.titles.length === 1
-            ? sellerData.titles[0]
-            : `${sellerData.titles.length} items`;
-        try {
-            await sendNotification({
-                userId: sellerId,
-                actorId: buyerId,
-                type: "NEW_ORDER",
-                message: `New order ${order.orderNumber} received for ${itemText}`
-            });
-        }
-        catch (error) {
-            console.error("Failed to send seller order notification:", error);
-        }
-    });
-    await Promise.all(notificationJobs);
-    // =================================
-    // RETURN ORDER
-    // =================================
-    return order;
 }
-// =====================================
-// BUYER ORDERS
-// =====================================
-export async function fetchBuyerOrders(buyerId) {
-    return getBuyerOrders(buyerId);
-}
-// =====================================
-// SINGLE BUYER ORDER
-// =====================================
-export async function fetchBuyerOrder(buyerId, orderId) {
-    const order = await getBuyerOrderById(buyerId, orderId);
-    if (!order) {
-        throw new Error("Order not found");
-    }
-    return order;
-}
-// =====================================
-// SELLER ORDERS
-// =====================================
-export async function fetchSellerOrders(sellerId) {
-    return getSellerOrders(sellerId);
-}
-// =====================================
-// SINGLE SELLER ORDER
-// =====================================
-export async function fetchSellerOrder(sellerId, orderId) {
-    const order = await getSellerOrder(sellerId, orderId);
-    if (!order) {
-        throw new Error("Order not found");
-    }
-    return order;
-}
-// =====================================
-// UPDATE SELLER ORDER STATUS
-// =====================================
-export async function changeSellerOrderStatus(sellerId, orderId, status) {
-    const updatedOrder = await updateSellerOrderItemStatus(sellerId, orderId, status);
-    if (!updatedOrder) {
-        throw new Error("Order not found");
-    }
-    // =================================
-    // NOTIFY BUYER
-    // =================================
-    try {
-        await sendNotification({
-            userId: updatedOrder.buyerId,
-            actorId: sellerId,
-            type: "ORDER_STATUS",
-            message: `Your order ${updatedOrder.orderNumber} status has been updated to ${status}`
+// =====================================================
+// UPDATE SELLER ORDER ITEM STATUS
+// =====================================================
+export async function updateSellerOrderItemStatus(sellerId, orderId, status) {
+    return prisma.$transaction(async (tx) => {
+        const sellerItems = await tx.orderItem.findMany({
+            where: {
+                orderId,
+                sellerId
+            },
+            select: {
+                id: true
+            }
         });
-    }
-    catch (error) {
-        console.error("Failed to send order status notification:", error);
-    }
-    return updatedOrder;
+        if (sellerItems.length === 0) {
+            throw new Error("Order not found or you are not authorized to update it");
+        }
+        // =============================================
+        // SELLER MUST NOT PROCESS UNPAID ORDERS
+        // =============================================
+        const order = await tx.order.findUnique({
+            where: {
+                id: orderId
+            },
+            select: {
+                paymentStatus: true
+            }
+        });
+        if (!order) {
+            throw new Error("Order not found");
+        }
+        if (order.paymentStatus !==
+            "PAID") {
+            throw new Error("The order cannot be processed until payment is confirmed");
+        }
+        // =============================================
+        // UPDATE SELLER ITEMS
+        // =============================================
+        const sellerItemStatus = await tx.orderItem.findMany({
+            where: {
+                orderId,
+                sellerId,
+            },
+            select: {
+                id: true,
+                status: true,
+            },
+        });
+        for (const item of sellerItemStatus) {
+            validateSellerStatusTransition(item.status, status);
+        }
+        await tx.orderItem.updateMany({
+            where: {
+                orderId,
+                sellerId
+            },
+            data: {
+                status
+            }
+        });
+        // =============================================
+        // GET ALL ITEMS
+        // =============================================
+        const allItems = await tx.orderItem.findMany({
+            where: {
+                orderId
+            },
+            select: {
+                status: true
+            }
+        });
+        const statuses = allItems.map((item) => item.status);
+        // =============================================
+        // CALCULATE ORDER STATUS
+        // =============================================
+        const overallStatus = calculateOverallOrderStatus(statuses);
+        await tx.order.update({
+            where: {
+                id: orderId
+            },
+            data: {
+                status: overallStatus
+            }
+        });
+        return tx.order.findUnique({
+            where: {
+                id: orderId
+            },
+            include: {
+                payment: true,
+                buyer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        whatsapp: true
+                    }
+                },
+                items: {
+                    where: {
+                        sellerId
+                    },
+                    include: {
+                        listing: {
+                            include: {
+                                images: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+}
+// =====================================================
+// RELEASE EXPIRED ORDER
+// =====================================================
+export async function releaseExpiredOrder(orderId) {
+    return prisma.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({
+            where: {
+                id: orderId
+            },
+            include: {
+                items: true
+            }
+        });
+        if (!order) {
+            return null;
+        }
+        if (order.paymentStatus ===
+            "PAID") {
+            return order;
+        }
+        if (order.paymentExpiresAt &&
+            order.paymentExpiresAt >
+                new Date()) {
+            return order;
+        }
+        // =========================================
+        // RELEASE LISTINGS
+        // =========================================
+        for (const item of order.items) {
+            await tx.listing.updateMany({
+                where: {
+                    id: item.listingId,
+                    status: "RESERVED"
+                },
+                data: {
+                    status: "ACTIVE",
+                    available: true,
+                    reservedAt: null
+                }
+            });
+        }
+        await tx.orderPayment.updateMany({
+            where: {
+                orderId
+            },
+            data: {
+                status: "FAILED"
+            }
+        });
+        await tx.order.update({
+            where: {
+                id: orderId
+            },
+            data: {
+                paymentStatus: "FAILED",
+                status: "CANCELLED"
+            }
+        });
+        await tx.orderItem.updateMany({
+            where: {
+                orderId
+            },
+            data: {
+                status: "CANCELLED"
+            }
+        });
+        return tx.order.findUnique({
+            where: {
+                id: orderId
+            }
+        });
+    });
 }

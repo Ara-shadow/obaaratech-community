@@ -1,8 +1,10 @@
-import { prisma } from "../../lib/prisma.js";
-
-import type {
-  CreateSellerPlanInput
-} from "./seller.plan.schema.js";
+export {
+  createDefaultPlans,
+  getPlans,
+  getAllSellerPlans,
+  getSellerPlanById,
+  updateSellerPlan,
+} from "../plans/plan.repository.js";
 
 
 
@@ -12,19 +14,6 @@ import type {
 // CREATE PLAN
 // =====================================
 
-export async function createSellerPlan(
-
-  data:CreateSellerPlanInput
-
-){
-
-  return prisma.sellerPlan.create({
-
-    data
-
-  });
-
-}
 
 
 
@@ -34,19 +23,6 @@ export async function createSellerPlan(
 // GET ALL PLANS
 // =====================================
 
-export async function getSellerPlans(){
-
-  return prisma.sellerPlan.findMany({
-
-    orderBy:{
-
-      price:"asc"
-
-    }
-
-  });
-
-}
 
 
 
@@ -56,23 +32,6 @@ export async function getSellerPlans(){
 // GET SINGLE PLAN
 // =====================================
 
-export async function getSellerPlanById(
-
-  id:string
-
-){
-
-  return prisma.sellerPlan.findUnique({
-
-    where:{
-
-      id
-
-    }
-
-  });
-
-}
 
 
 
@@ -82,20 +41,3 @@ export async function getSellerPlanById(
 // DELETE PLAN
 // =====================================
 
-export async function deleteSellerPlan(
-
-  id:string
-
-){
-
-  return prisma.sellerPlan.delete({
-
-    where:{
-
-      id
-
-    }
-
-  });
-
-}

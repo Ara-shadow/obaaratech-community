@@ -13,7 +13,7 @@ export async function createDefaultPlans() {
             featuredListing: false,
             prioritySearch: false,
             verifiedBadge: false,
-            isActive: true
+            isActive: true,
         },
         {
             name: "PREMIUM",
@@ -24,7 +24,7 @@ export async function createDefaultPlans() {
             featuredListing: true,
             prioritySearch: true,
             verifiedBadge: false,
-            isActive: true
+            isActive: true,
         },
         {
             name: "BUSINESS",
@@ -35,21 +35,32 @@ export async function createDefaultPlans() {
             featuredListing: true,
             prioritySearch: true,
             verifiedBadge: true,
-            isActive: true
-        }
+            isActive: true,
+        },
     ];
     for (const plan of plans) {
-        const existing = await prisma.sellerPlan.findUnique({
+        await prisma.sellerPlan.upsert({
             where: {
-                name: plan.name
-            }
+                name: plan.name,
+            },
+            update: {
+                price: plan.price,
+                duration: plan.duration,
+                maxListings: plan.maxListings,
+                imageLimit: plan.imageLimit,
+                featuredListing: plan.featuredListing,
+                prioritySearch: plan.prioritySearch,
+                verifiedBadge: plan.verifiedBadge,
+                isActive: plan.isActive,
+            },
+            create: plan,
         });
-        if (!existing) {
-            await prisma.sellerPlan.create({
-                data: plan
-            });
-        }
     }
+    return prisma.sellerPlan.findMany({
+        orderBy: {
+            price: "asc",
+        },
+    });
 }
 // =================================
 // GET ALL ACTIVE PLANS
@@ -57,11 +68,16 @@ export async function createDefaultPlans() {
 export async function getPlans() {
     return prisma.sellerPlan.findMany({
         where: {
-            isActive: true
+            isActive: true,
         },
-        orderBy: {
-            price: "asc"
-        }
+        orderBy: [
+            {
+                price: "asc",
+            },
+            {
+                name: "asc",
+            },
+        ],
     });
 }
 // =================================
@@ -71,49 +87,100 @@ export async function getAllSellerPlans() {
     return prisma.sellerPlan.findMany({
         orderBy: [
             {
-                price: "asc"
+                price: "asc",
             },
             {
-                name: "asc"
-            }
-        ]
+                name: "asc",
+            },
+        ],
     });
 }
 // =================================
 // GET SINGLE PLAN
 // =================================
 export async function getSellerPlanById(id) {
+    if (!id.trim()) {
+        throw new Error("Seller plan ID is required");
+    }
     return prisma.sellerPlan.findUnique({
         where: {
-            id
-        }
+            id,
+        },
     });
 }
 // =================================
 // UPDATE SELLER PLAN
 // =================================
 export async function updateSellerPlan(id, data) {
+    if (!id.trim()) {
+        throw new Error("Seller plan ID is required");
+    }
+    if (data.name !== undefined &&
+        !data.name.trim()) {
+        throw new Error("Seller plan name cannot be empty");
+    }
+    if (data.price !== undefined &&
+        (!Number.isFinite(data.price) ||
+            data.price < 0)) {
+        throw new Error("Seller plan price must be a non-negative number");
+    }
+    if (data.duration !== undefined &&
+        (!Number.isInteger(data.duration) ||
+            data.duration <= 0)) {
+        throw new Error("Seller plan duration must be a positive integer");
+    }
+    if (data.maxListings !== undefined &&
+        (!Number.isInteger(data.maxListings) ||
+            data.maxListings < 0)) {
+        throw new Error("Maximum listings must be a non-negative integer");
+    }
+    if (data.imageLimit !== undefined &&
+        (!Number.isInteger(data.imageLimit) ||
+            data.imageLimit < 1)) {
+        throw new Error("Image limit must be a positive integer");
+    }
+    const existingPlan = await prisma.sellerPlan.findUnique({
+        where: {
+            id,
+        },
+    });
+    if (!existingPlan) {
+        throw new Error("Seller plan not found");
+    }
+    const updateData = {
+        ...data,
+    };
+    if (updateData.name !== undefined) {
+        updateData.name =
+            updateData.name.trim().toUpperCase();
+    }
     return prisma.sellerPlan.update({
         where: {
-            id
+            id,
         },
-        data
+        data: updateData,
     });
 }
 // =================================
 // GET USER ACTIVE PLAN
 // =================================
 export async function getUserPlan(userId) {
+    if (!userId.trim()) {
+        throw new Error("User ID is required");
+    }
     return prisma.sellerSubscription.findFirst({
         where: {
             userId,
             active: true,
             expiryDate: {
-                gt: new Date()
-            }
+                gt: new Date(),
+            },
         },
         include: {
-            plan: true
-        }
+            plan: true,
+        },
+        orderBy: {
+            expiryDate: "desc",
+        },
     });
 }

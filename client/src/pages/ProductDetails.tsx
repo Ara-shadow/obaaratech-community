@@ -13,9 +13,17 @@ import {
     ChevronRight,
     X,
     Maximize2,
-    ImageOff,
     Heart,
-    Loader2
+    Loader2,
+    Star,
+    MapPin,
+    Clock,
+    ShieldCheck,
+    MessageCircle,
+    Minus,
+    Plus,
+    ShoppingBag,
+    Check
 } from "lucide-react";
 
 import {
@@ -52,111 +60,39 @@ import type {
 } from "../api/sellers";
 
 
+// ============================================================
+// PRODUCT DETAILS PAGE
+// ============================================================
+
 export default function ProductDetails() {
 
-    const { id } = useParams();
-
-    const {
-        isAuthenticated
-    } = useAuth();
-
-
-    const [
-        listing,
-        setListing
-    ] = useState<Listing | null>(null);
-
-
-    const [
-        relatedListings,
-        setRelatedListings
-    ] = useState<Listing[]>([]);
-
-    const [
-        sellerProfile,
-        setSellerProfile
-    ] = useState<PublicSellerProfile | null>(null);
-
-
-    const [
-        loading,
-        setLoading
-    ] = useState(true);
-
-
-    const [
-        error,
-        setError
-    ] = useState("");
-
-
-    const [
-        activeImage,
-        setActiveImage
-    ] = useState(0);
-
-
-    const [
-        isLightboxOpen,
-        setIsLightboxOpen
-    ] = useState(false);
-
+    const { id } = useParams<{ id: string }>();
+    const { isAuthenticated } = useAuth();
 
     // =====================================================
-    // CART STATE
+    // STATE
     // =====================================================
 
-    const [
-        addingToCart,
-        setAddingToCart
-    ] = useState(false);
+    const [listing, setListing] = useState<Listing | null>(null);
+    const [relatedListings, setRelatedListings] = useState<Listing[]>([]);
+    const [sellerProfile, setSellerProfile] = useState<PublicSellerProfile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [activeImage, setActiveImage] = useState(0);
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
+    // Quantity
+    const [quantity, setQuantity] = useState(1);
 
-    const [
-        cartMessage,
-        setCartMessage
-    ] = useState("");
+    // Cart
+    const [addingToCart, setAddingToCart] = useState(false);
+    const [cartMessage, setCartMessage] = useState("");
+    const [cartError, setCartError] = useState("");
 
-
-    const [
-        cartError,
-        setCartError
-    ] = useState("");
-
-
-    // =====================================================
-    // FAVOURITE STATE
-    // =====================================================
-
-    const [
-        isFavourite,
-        setIsFavourite
-    ] = useState(false);
-
-
-    const [
-        favouriteLoading,
-        setFavouriteLoading
-    ] = useState(false);
-
-
-    const [
-        favouriteMessage,
-        setFavouriteMessage
-    ] = useState("");
-
-
-    const [
-        favouriteError,
-        setFavouriteError
-    ] = useState("");
-
-
-    const [
-        favouriteLoaded,
-        setFavouriteLoaded
-    ] = useState(false);
-
+    // Favourite
+    const [isFavourite, setIsFavourite] = useState(false);
+    const [favouriteLoading, setFavouriteLoading] = useState(false);
+    const [favouriteLoaded, setFavouriteLoaded] = useState(false);
 
     // =====================================================
     // LOAD LISTING
@@ -165,117 +101,65 @@ export default function ProductDetails() {
     useEffect(() => {
 
         if (!id) {
-
             setError("Product not found");
-
             setLoading(false);
-
             return;
-
         }
 
-
         let mounted = true;
-
 
         async function loadListing() {
 
             try {
-
                 setLoading(true);
-
                 setError("");
 
+                // Use ! to assert id is defined (we already checked above)
+                const data = await getListingById(id!);
 
-               const data =
-    await getListingById(id!);
-
-
-                if (!mounted) {
-                    return;
-                }
-
+                if (!mounted) return;
 
                 setListing(data);
-
                 setActiveImage(0);
+                setQuantity(1);
 
-
-                // =================================================
-                // LOAD RELATED LISTINGS
-                // =================================================
-
+                // Load related listings
                 try {
-
-                    const related =
-                        await getRelatedListings(
-                            data.id
-                        );
-
-
+                    const related = await getRelatedListings(data.id);
                     if (mounted) {
-
-                        setRelatedListings(
-                            related
-                        );
-
+                        setRelatedListings(related);
                     }
-
                 } catch (relatedError) {
-
-                    console.error(
-                        "Related listings error:",
-                        relatedError
-                    );
-
-
+                    console.error("Related listings error:", relatedError);
                     if (mounted) {
-
                         setRelatedListings([]);
-
                     }
-
                 }
 
             } catch (requestError) {
-
-                console.error(
-                    "Product loading error:",
-                    requestError
-                );
-
-
+                console.error("Product loading error:", requestError);
                 if (mounted) {
-
-                    setError(
-                        "Unable to load this product."
-                    );
-
+                    setError("Unable to load this product.");
                 }
-
             } finally {
-
                 if (mounted) {
-
                     setLoading(false);
-
                 }
-
             }
 
         }
 
-
         loadListing();
 
-
         return () => {
-
             mounted = false;
-
         };
 
     }, [id]);
+
+    // =====================================================
+    // LOAD SELLER PROFILE
+    // =====================================================
 
     useEffect(() => {
         const sellerId = listing?.owner?.id;
@@ -285,20 +169,17 @@ export default function ProductDetails() {
             return;
         }
 
-        const publicSellerId = sellerId;
-
         let mounted = true;
 
         async function loadSellerProfile() {
             try {
-                const data = await getPublicSellerProfile(publicSellerId);
-
+                // Use ! to assert sellerId is defined (we already checked above)
+                const data = await getPublicSellerProfile(sellerId!);
                 if (mounted) {
                     setSellerProfile(data);
                 }
             } catch (requestError) {
                 console.error("Seller profile loading error:", requestError);
-
                 if (mounted) {
                     setSellerProfile(null);
                 }
@@ -312,98 +193,54 @@ export default function ProductDetails() {
         };
     }, [listing?.owner?.id]);
 
-
     // =====================================================
     // LOAD FAVOURITE STATUS
     // =====================================================
 
     useEffect(() => {
 
-        if (
-            !isAuthenticated ||
-            !listing
-        ) {
-
+        if (!isAuthenticated || !listing) {
             setIsFavourite(false);
-
             setFavouriteLoaded(false);
-
             return;
-
         }
 
-
         let mounted = true;
-
 
         async function loadFavouriteStatus() {
 
             try {
-
                 setFavouriteLoaded(false);
+                const favourites = await getFavourites();
 
+                if (!mounted) return;
 
-                const favourites =
-                    await getFavourites();
-
-
-                if (!mounted) {
-                    return;
-                }
-
-
-              const exists =
-    favourites.some(
-        favourite =>
-            favourite.id === listing?.id
-    );
-
-
-                setIsFavourite(
-                    exists
+                const exists = favourites.some(
+                    favourite => favourite.id === listing?.id
                 );
+
+                setIsFavourite(exists);
 
             } catch (requestError) {
-
-                console.error(
-                    "Favourite status error:",
-                    requestError
-                );
-
-
+                console.error("Favourite status error:", requestError);
                 if (mounted) {
-
                     setIsFavourite(false);
-
                 }
-
             } finally {
-
                 if (mounted) {
-
                     setFavouriteLoaded(true);
-
                 }
-
             }
 
         }
 
-
         loadFavouriteStatus();
 
-
         return () => {
-
             mounted = false;
-
         };
 
-    }, [
-        isAuthenticated,
-        listing
-    ]);
-
+    }, [isAuthenticated, listing]);
 
     // =====================================================
     // LIGHTBOX KEYBOARD CONTROLS
@@ -411,77 +248,39 @@ export default function ProductDetails() {
 
     useEffect(() => {
 
-        if (
-            !isLightboxOpen ||
-            !listing?.images?.length
-        ) {
-
+        if (!isLightboxOpen || !listing?.images?.length) {
             return;
-
         }
 
-
-        const handleKeyDown = (
-            event: KeyboardEvent
-        ) => {
+        const handleKeyDown = (event: KeyboardEvent) => {
 
             if (event.key === "Escape") {
-
                 setIsLightboxOpen(false);
-
                 return;
-
             }
-
 
             if (event.key === "ArrowLeft") {
-
-                setActiveImage(
-                    current =>
-                        current === 0
-                            ? listing.images.length - 1
-                            : current - 1
+                setActiveImage(current =>
+                    current === 0 ? listing.images.length - 1 : current - 1
                 );
-
                 return;
-
             }
-
 
             if (event.key === "ArrowRight") {
-
-                setActiveImage(
-                    current =>
-                        current === listing.images.length - 1
-                            ? 0
-                            : current + 1
+                setActiveImage(current =>
+                    current === listing.images.length - 1 ? 0 : current + 1
                 );
-
             }
 
         };
 
-
-        document.addEventListener(
-            "keydown",
-            handleKeyDown
-        );
-
+        document.addEventListener("keydown", handleKeyDown);
 
         return () => {
-
-            document.removeEventListener(
-                "keydown",
-                handleKeyDown
-            );
-
+            document.removeEventListener("keydown", handleKeyDown);
         };
 
-    }, [
-        isLightboxOpen,
-        listing
-    ]);
-
+    }, [isLightboxOpen, listing]);
 
     // =====================================================
     // PREVENT BODY SCROLL WHEN LIGHTBOX IS OPEN
@@ -489,363 +288,64 @@ export default function ProductDetails() {
 
     useEffect(() => {
 
-        if (!isLightboxOpen) {
-            return;
-        }
+        if (!isLightboxOpen) return;
 
-
-        const originalOverflow =
-            document.body.style.overflow;
-
-
-        document.body.style.overflow =
-            "hidden";
-
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
 
         return () => {
-
-            document.body.style.overflow =
-                originalOverflow;
-
+            document.body.style.overflow = originalOverflow;
         };
 
     }, [isLightboxOpen]);
 
-
     // =====================================================
-    // LOADING
-    // =====================================================
-
-    if (loading) {
-
-        return (
-
-            <main className="product-page">
-
-                <div className="marketplace-message">
-
-                    Loading product...
-
-                </div>
-
-            </main>
-
-        );
-
-    }
-
-
-    // =====================================================
-    // ERROR
-    // =====================================================
-
-    if (
-        error ||
-        !listing
-    ) {
-
-        return (
-
-            <main className="product-page">
-
-                <div className="marketplace-message error">
-
-                    <h2>
-                        {error || "Product not found"}
-                    </h2>
-
-
-                    <Link to="/">
-                        ← Back to marketplace
-                    </Link>
-
-                </div>
-
-            </main>
-
-        );
-
-    }
-
-
-    // =====================================================
-    // PRODUCT DATA
-    // =====================================================
-
-    const hasImages =
-        Boolean(
-            listing.images &&
-            listing.images.length > 0
-        );
-
-
-    const imageCount =
-        listing.images?.length ?? 0;
-
-
-    const safeImageIndex =
-        hasImages
-            ? Math.min(
-                activeImage,
-                imageCount - 1
-            )
-            : 0;
-
-
-    const activeImageUrl =
-        hasImages
-            ? listing.images[
-                safeImageIndex
-            ].url
-            : null;
-
-
- const formattedPrice =
-    listing.price !== null &&
-    listing.price !== undefined
-        ? new Intl.NumberFormat(
-            "en-NG",
-            {
-                style: "currency",
-                currency:
-                    listing.currency ?? "NGN",
-                maximumFractionDigits: 2
-            }
-        ).format(listing.price)
-        : "Contact Seller";
-
-
-    const availabilityText =
-        listing.available
-            ? "Available"
-            : "Currently unavailable";
-
-
-    // =====================================================
-    // CONDITION LABELS
-    // =====================================================
-
-    const conditionLabels:
-        Record<string, string> = {
-
-        NEW:
-            "New",
-
-        USED:
-            "Used",
-
-        UK_USED:
-            "UK Used",
-
-        NIGERIA_USED:
-            "Nigeria Used",
-
-        BRAND_NEW:
-            "Brand New",
-
-        FOREIGN_USED:
-            "Foreign Used",
-
-        NEW_BUILD:
-            "New Build",
-
-        OLD_BUILDING:
-            "Old Building",
-
-        RENOVATED:
-            "Renovated"
-
-    };
-
-
-    const conditionText =
-        listing.condition
-            ? conditionLabels[
-                listing.condition
-            ] ||
-            listing.condition
-            : "Not specified";
-
-
-    const categoryText =
-        listing.category?.name ||
-        "Uncategorized";
-
-
-    // =====================================================
-    // DYNAMIC LISTING DETAILS
-    // =====================================================
-
-    const listingDetails =
-        listing.details ?? {};
-
-
-    const detailEntries =
-        Object.entries(
-            listingDetails
-        );
-
-
-    const sellerName =
-        listing.owner?.name ||
-        "Seller";
-
-    const businessStatus = sellerProfile?.businessStatus;
-
-    function formatBusinessTime(time: string | null | undefined) {
-        if (!time) {
-            return "Closed";
-        }
-
-        const [hours, minutes] = time.split(":").map(Number);
-        const suffix = hours >= 12 ? "PM" : "AM";
-        const displayHour = hours % 12 || 12;
-
-        return `${displayHour}:${String(minutes).padStart(2, "0")} ${suffix}`;
-    }
-
-
-    // =====================================================
-    // REVIEWS & RATING
-    // =====================================================
-
-    const reviews =
-        listing.reviews ?? [];
-
-
-    const reviewCount =
-        reviews.length;
-
-
-    const averageRating =
-        reviewCount > 0
-            ? reviews.reduce(
-                (
-                    sum,
-                    review
-                ) =>
-                    sum + review.rating,
-                0
-            ) / reviewCount
-            : 0;
-
-
-    const roundedRating =
-        Math.round(
-            averageRating
-        );
-
-
-    // =====================================================
-    // IMAGE NAVIGATION
+    // HANDLERS
     // =====================================================
 
     function showPreviousImage() {
-
-        if (!hasImages) {
-            return;
-        }
-
-
-        setActiveImage(
-            current =>
-                current === 0
-                    ? imageCount - 1
-                    : current - 1
+        if (!listing?.images?.length) return;
+        setActiveImage(current =>
+            current === 0 ? listing.images.length - 1 : current - 1
         );
-
     }
-
 
     function showNextImage() {
-
-        if (!hasImages) {
-            return;
-        }
-
-
-        setActiveImage(
-            current =>
-                current === imageCount - 1
-                    ? 0
-                    : current + 1
+        if (!listing?.images?.length) return;
+        setActiveImage(current =>
+            current === listing.images.length - 1 ? 0 : current + 1
         );
-
     }
 
-
-    function selectImage(
-        index: number
-    ) {
-
-        if (
-            index < 0 ||
-            index >= imageCount
-        ) {
-
-            return;
-
-        }
-
-
+    function selectImage(index: number) {
+        if (!listing?.images?.length) return;
+        if (index < 0 || index >= listing.images.length) return;
         setActiveImage(index);
-
     }
 
+    function decreaseQuantity() {
+        if (quantity > 1) {
+            setQuantity(prev => prev - 1);
+        }
+    }
 
-    // =====================================================
-    // WHATSAPP CONTACT
-    // =====================================================
+    function increaseQuantity() {
+        setQuantity(prev => prev + 1);
+    }
 
     function contactSeller() {
-
-     if (!listing?.owner?.phone) {
-
-            alert(
-                "Seller contact information is not available."
-            );
-
+        if (!listing?.owner?.phone) {
+            alert("Seller contact information is not available.");
             return;
-
         }
 
-
-       const phone =
-    listing.owner.phone
-                .replace(/\D/g, "")
-                .replace(
-                    /^0/,
-                    "234"
-                );
-
-
-        const message =
-            encodeURIComponent(
-                `Hello, I am interested in your Obaaratech Marketplace listing: ${listing.title}`
-            );
-
-
-        window.open(
-            `https://wa.me/${phone}?text=${message}`,
-            "_blank",
-            "noopener,noreferrer"
+        const phone = listing.owner.phone.replace(/\D/g, "").replace(/^0/, "234");
+        const message = encodeURIComponent(
+            `Hello, I am interested in your Obaaratech Marketplace listing: ${listing.title}`
         );
 
+        window.open(`https://wa.me/${phone}?text=${message}`, "_blank", "noopener,noreferrer");
     }
-
-
-    // =====================================================
-    // BUY NOW
-    // =====================================================
-
-    function handleBuyNow() {
-
-        alert(
-            "Checkout and payment will be connected to the Obaaratech Marketplace payment system next."
-        );
-
-    }
-
 
     // =====================================================
     // ADD TO CART
@@ -853,60 +353,29 @@ export default function ProductDetails() {
 
     async function handleAddToCart() {
 
-        if (!listing) {
-            return;
-        }
-
+        if (!listing) return;
 
         if (!listing.available) {
-
-            setCartError(
-                "This listing is currently unavailable."
-            );
-
+            setCartError("This listing is currently unavailable.");
             return;
-
         }
 
-
         try {
-
             setAddingToCart(true);
-
             setCartMessage("");
-
             setCartError("");
 
+            await addToCart(listing.id);
 
-            await addToCart(
-                listing.id
-            );
-
-
-            setCartMessage(
-                "Added to cart successfully."
-            );
+            setCartMessage(`Added ${quantity} item(s) to cart successfully.`);
 
         } catch (requestError: any) {
+            console.error("Add to cart error:", requestError);
 
-            console.error(
-                "Add to cart error:",
-                requestError
-            );
-
-
-            if (
-                requestError?.response?.status === 401
-            ) {
-
-                setCartError(
-                    "Please log in to add items to your cart."
-                );
-
+            if (requestError?.response?.status === 401) {
+                setCartError("Please log in to add items to your cart.");
                 return;
-
             }
-
 
             setCartError(
                 requestError?.response?.data?.message ||
@@ -914,13 +383,10 @@ export default function ProductDetails() {
             );
 
         } finally {
-
             setAddingToCart(false);
-
         }
 
     }
-
 
     // =====================================================
     // TOGGLE FAVOURITE
@@ -928,144 +394,187 @@ export default function ProductDetails() {
 
     async function handleToggleFavourite() {
 
-        if (!listing) {
-            return;
-        }
-
-
-        setFavouriteMessage("");
-
-        setFavouriteError("");
-
-
-        // =================================================
-        // LOGIN REQUIRED
-        // =================================================
+        if (!listing) return;
 
         if (!isAuthenticated) {
-
-            setFavouriteError(
-                "Please log in to save favourites."
-            );
-
-            return;
-
-        }
-
-
-        if (favouriteLoading) {
+            setCartError("Please log in to save favourites.");
             return;
         }
 
+        if (favouriteLoading) return;
 
         try {
-
             setFavouriteLoading(true);
 
-
             if (isFavourite) {
-
-                await removeFavourite(
-                    listing.id
-                );
-
-
+                await removeFavourite(listing.id);
                 setIsFavourite(false);
-
-
-                setFavouriteMessage(
-                    "Removed from favourites."
-                );
-
             } else {
-
-                await addFavourite(
-                    listing.id
-                );
-
-
+                await addFavourite(listing.id);
                 setIsFavourite(true);
-
-
-                setFavouriteMessage(
-                    "Added to favourites."
-                );
-
             }
 
         } catch (requestError: any) {
-
-            console.error(
-                "Favourite error:",
-                requestError
-            );
-
-
-            if (
-                requestError?.response?.status === 401
-            ) {
-
-                setFavouriteError(
-                    "Your session has expired. Please log in again."
-                );
-
-                return;
-
+            console.error("Favourite error:", requestError);
+            if (requestError?.response?.status === 401) {
+                setCartError("Your session has expired. Please log in again.");
+            } else {
+                setCartError("Unable to update favourites. Please try again.");
             }
-
-
-            setFavouriteError(
-                requestError?.response?.data?.message ||
-                "Unable to update favourites. Please try again."
-            );
-
         } finally {
-
             setFavouriteLoading(false);
-
         }
 
     }
 
+    // =====================================================
+    // FORMAT PRICE
+    // =====================================================
+
+    function formatPrice(price: number | null | undefined) {
+
+        if (price === null || price === undefined) {
+            return "Contact Seller";
+        }
+
+        return new Intl.NumberFormat("en-NG", {
+            style: "currency",
+            currency: listing?.currency || "NGN",
+            maximumFractionDigits: 0
+        }).format(price);
+
+    }
 
     // =====================================================
-    // PRODUCT PAGE
+    // RENDER STARS
+    // =====================================================
+
+    function renderStars(rating: number) {
+        const fullStars = Math.floor(rating);
+        const hasHalfStar = rating % 1 >= 0.5;
+        const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+        return (
+            <span className="product-rating-stars">
+                {[...Array(fullStars)].map((_, i) => (
+                    <Star key={`full-${i}`} size={16} fill="#f59e0b" stroke="#f59e0b" />
+                ))}
+                {hasHalfStar && <Star key="half" size={16} fill="#f59e0b" stroke="#f59e0b" className="half-star" />}
+                {[...Array(emptyStars)].map((_, i) => (
+                    <Star key={`empty-${i}`} size={16} stroke="#d1d5db" />
+                ))}
+            </span>
+        );
+    }
+
+    // =====================================================
+    // GET IMAGE URL
+    // =====================================================
+
+    function getImageUrl(url?: string) {
+        if (!url) return "";
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            return url;
+        }
+        const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        return `${apiBaseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+    }
+
+    // =====================================================
+    // LOADING
+    // =====================================================
+
+    if (loading) {
+        return (
+            <main className="product-page">
+                <div className="product-loading">
+                    <div className="product-loading-spinner">
+                        <Loader2 size={40} className="spinning" />
+                        <p>Loading product details...</p>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    // =====================================================
+    // ERROR
+    // =====================================================
+
+    if (error || !listing) {
+        return (
+            <main className="product-page">
+                <div className="product-error">
+                    <div className="product-error-icon">⚠️</div>
+                    <h2>{error || "Product not found"}</h2>
+                    <p>The product you're looking for doesn't exist or has been removed.</p>
+                    <Link to="/" className="btn-primary">
+                        ← Back to Marketplace
+                    </Link>
+                </div>
+            </main>
+        );
+    }
+
+    // =====================================================
+    // PRODUCT DATA
+    // =====================================================
+
+    const hasImages = Boolean(listing.images && listing.images.length > 0);
+    const imageCount = listing.images?.length ?? 0;
+    const safeImageIndex = hasImages ? Math.min(activeImage, imageCount - 1) : 0;
+    const activeImageUrl = hasImages ? listing.images[safeImageIndex].url : null;
+
+    const reviews = listing.reviews ?? [];
+    const reviewCount = reviews.length;
+    const averageRating = reviewCount > 0
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount
+        : 0;
+
+    const sellerName = listing.owner?.name || "Seller";
+    const businessStatus = sellerProfile?.businessStatus;
+
+    const conditionLabels: Record<string, string> = {
+        NEW: "New",
+        USED: "Used",
+        UK_USED: "UK Used",
+        NIGERIA_USED: "Nigeria Used",
+        BRAND_NEW: "Brand New",
+        FOREIGN_USED: "Foreign Used",
+        NEW_BUILD: "New Build",
+        OLD_BUILDING: "Old Building",
+        RENOVATED: "Renovated"
+    };
+
+    const conditionText = listing.condition
+        ? conditionLabels[listing.condition] || listing.condition
+        : "Not specified";
+
+    // =====================================================
+    // PAGE
     // =====================================================
 
     return (
 
         <main className="product-page">
 
-
             {/* =================================================
                 BREADCRUMB
             ================================================= */}
 
             <div className="product-breadcrumb">
-
-                <Link to="/">
-                    Marketplace
-                </Link>
-
-
-                <span>
-                    /
-                </span>
-
-
-                <span>
-                    {listing.title}
-                </span>
-
+                <Link to="/">Home</Link>
+                <span className="separator">›</span>
+                <Link to="/marketplace">Marketplace</Link>
+                <span className="separator">›</span>
+                <span className="current">{listing.title}</span>
             </div>
-
 
             {/* =================================================
                 PRODUCT CONTAINER
             ================================================= */}
 
-            <section className="product-container">
-
+            <div className="product-container">
 
                 {/* =================================================
                     IMAGE GALLERY
@@ -1073,1015 +582,432 @@ export default function ProductDetails() {
 
                 <div className="product-gallery">
 
-                    <div className="main-product-image">
+                    <div className="product-main-image">
 
                         {activeImageUrl ? (
 
                             <>
-
                                 <img
-                                    src={activeImageUrl}
+                                    src={getImageUrl(activeImageUrl)}
                                     alt={listing.title}
                                 />
 
-
                                 {hasImages && (
-
-                                    <div className="image-counter">
-
-                                        {safeImageIndex + 1}
-                                        {" / "}
-                                        {imageCount}
-
+                                    <div className="product-image-counter">
+                                        {safeImageIndex + 1} / {imageCount}
                                     </div>
-
                                 )}
-
 
                                 <button
                                     type="button"
-                                    className="image-expand-button"
-                                    onClick={() =>
-                                        setIsLightboxOpen(true)
-                                    }
-                                    aria-label="View product image fullscreen"
+                                    className="product-image-expand"
+                                    onClick={() => setIsLightboxOpen(true)}
+                                    aria-label="View fullscreen"
                                 >
-
-                                    <Maximize2
-                                        size={20}
-                                    />
-
+                                    <Maximize2 size={18} />
                                 </button>
 
-
                                 {imageCount > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="product-gallery-nav product-gallery-prev"
+                                            onClick={showPreviousImage}
+                                            aria-label="Previous image"
+                                        >
+                                            <ChevronLeft size={24} />
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        className="gallery-nav gallery-prev"
-                                        onClick={
-                                            showPreviousImage
-                                        }
-                                        aria-label="Previous product image"
-                                    >
-
-                                        <ChevronLeft
-                                            size={28}
-                                        />
-
-                                    </button>
-
-                                )}
-
-
-                                {imageCount > 1 && (
-
-                                    <button
-                                        type="button"
-                                        className="gallery-nav gallery-next"
-                                        onClick={
-                                            showNextImage
-                                        }
-                                        aria-label="Next product image"
-                                    >
-
-                                        <ChevronRight
-                                            size={28}
-                                        />
-
-                                    </button>
-
+                                        <button
+                                            type="button"
+                                            className="product-gallery-nav product-gallery-next"
+                                            onClick={showNextImage}
+                                            aria-label="Next image"
+                                        >
+                                            <ChevronRight size={24} />
+                                        </button>
+                                    </>
                                 )}
 
                             </>
 
                         ) : (
 
-                            <div className="no-image">
-
-                                <ImageOff
-                                    size={52}
-                                    strokeWidth={1.5}
-                                />
-
-
-                                <strong>
-                                    No Image Available
-                                </strong>
-
-
-                                <span>
-                                    The seller has not uploaded
-                                    a product image yet.
-                                </span>
-
+                            <div className="product-no-image">
+                                <div className="product-no-image-icon">📷</div>
+                                <p>No Image Available</p>
                             </div>
 
                         )}
 
                     </div>
 
+                    {/* Thumbnails */}
+                    {hasImages && imageCount > 1 && (
 
-                    {/* =================================================
-                        THUMBNAILS
-                    ================================================= */}
+                        <div className="product-thumbnails">
+                            {listing.images.map((image, index) => (
 
-                    {hasImages && (
+                                <button
+                                    key={image.id}
+                                    type="button"
+                                    className={`product-thumbnail ${activeImage === index ? "active" : ""}`}
+                                    onClick={() => selectImage(index)}
+                                    aria-label={`View image ${index + 1}`}
+                                >
+                                    <img src={getImageUrl(image.url)} alt={`${listing.title} ${index + 1}`} />
+                                </button>
 
-                        <div
-                            className="thumbnail-list"
-                            aria-label="Product image thumbnails"
-                        >
-
-                            {listing.images.map(
-                                (
-                                    image,
-                                    index
-                                ) => (
-
-                                    <button
-                                        type="button"
-                                        key={image.id}
-                                        className={
-                                            activeImage === index
-                                                ? "thumbnail-button active"
-                                                : "thumbnail-button"
-                                        }
-                                        onClick={() =>
-                                            selectImage(index)
-                                        }
-                                        aria-label={
-                                            `View ${listing.title} image ${index + 1}`
-                                        }
-                                    >
-
-                                        <img
-                                            className="thumbnail"
-                                            src={image.url}
-                                            alt={
-                                                `${listing.title} ${index + 1}`
-                                            }
-                                        />
-
-                                    </button>
-
-                                )
-                            )}
-
+                            ))}
                         </div>
 
                     )}
 
-
-                    {imageCount > 1 && (
-
-                        <p className="gallery-hint">
-
-                            Click an image to enlarge
-                            {" • "}
-                            Use ← → to navigate
-
-                        </p>
-
-                    )}
-
                 </div>
-
 
                 {/* =================================================
                     PRODUCT INFORMATION
                 ================================================= */}
 
-                <div className="product-information">
+                <div className="product-info-section">
 
-
-                    {/* =================================================
-                        BADGE
-                    ================================================= */}
-
-                    <div className="product-badge">
-
-                        {listing.featured
-                            ? "Featured Listing"
-                            : "Marketplace Listing"}
-
+                    {/* Category Badge */}
+                    <div className="product-category-badge">
+                        {listing.category?.name || "Uncategorized"}
                     </div>
 
-
-                    {/* =================================================
-                        TITLE + FAVOURITE
-                    ================================================= */}
-
-                    <div
-                        className="product-title-row"
-                        style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            justifyContent: "space-between",
-                            gap: "16px"
-                        }}
-                    >
-
-                        <h1>
-                            {listing.title}
-                        </h1>
-
+                    {/* Title & Favourite */}
+                    <div className="product-title-row">
+                        <h1>{listing.title}</h1>
 
                         <button
                             type="button"
-                            className={
-                                isFavourite
-                                    ? "favourite-button active"
-                                    : "favourite-button"
-                            }
-                            onClick={
-                                handleToggleFavourite
-                            }
-                            disabled={
-                                favouriteLoading ||
-                                (
-                                    isAuthenticated &&
-                                    !favouriteLoaded
-                                )
-                            }
-                            aria-label={
-                                isFavourite
-                                    ? "Remove from favourites"
-                                    : "Add to favourites"
-                            }
-                            title={
-                                isFavourite
-                                    ? "Remove from favourites"
-                                    : "Add to favourites"
-                            }
+                            className={`product-favourite-btn ${isFavourite ? "active" : ""}`}
+                            onClick={handleToggleFavourite}
+                            disabled={favouriteLoading || (!isAuthenticated && !favouriteLoaded)}
+                            aria-label={isFavourite ? "Remove from favourites" : "Add to favourites"}
                         >
-
                             {favouriteLoading ? (
-
-                                <Loader2
-                                    size={22}
-                                    className="spinning"
-                                />
-
+                                <Loader2 size={22} className="spinning" />
                             ) : (
-
-                                <Heart
-                                    size={22}
-                                    fill={
-                                        isFavourite
-                                            ? "currentColor"
-                                            : "none"
-                                    }
-                                />
-
+                                <Heart size={22} fill={isFavourite ? "currentColor" : "none"} />
                             )}
-
                         </button>
-
                     </div>
 
-
-                    {/* =================================================
-                        RATING
-                    ================================================= */}
-
-                    <div className="product-rating">
-
-                        <span className="rating-stars">
-
+                    {/* Rating */}
+                    <div className="product-rating-row">
+                        {renderStars(averageRating)}
+                        <span className="product-rating-count">
                             {reviewCount > 0
-                                ? "★".repeat(
-                                    roundedRating
-                                )
-                                : "☆"}
-
+                                ? `${averageRating.toFixed(1)} (${reviewCount} ${reviewCount === 1 ? "review" : "reviews"})`
+                                : "No reviews yet"}
                         </span>
-
-
-                        {reviewCount > 0 ? (
-
-                            <span>
-
-                                {averageRating.toFixed(1)}
-
-                                {" "}
-
-                                (
-                                {reviewCount}
-                                {" "}
-
-                                {
-                                    reviewCount === 1
-                                        ? "review"
-                                        : "reviews"
-                                }
-                                )
-
-                            </span>
-
-                        ) : (
-
-                            <span>
-                                No reviews yet
-                            </span>
-
-                        )}
-
                     </div>
 
-
-                    {/* =================================================
-                        PRICE
-                    ================================================= */}
-
+                    {/* Price */}
                     <div className="product-price-section">
-
-                        <h2 className="product-details-price">
-
-                            {formattedPrice}
-
-                        </h2>
-
-
+                        <span className="product-price-large">{formatPrice(listing.price)}</span>
                         {listing.negotiable && (
-
-                            <span className="negotiable-badge">
-
-                                Price Negotiable
-
-                            </span>
-
+                            <span className="product-negotiable-badge">Negotiable</span>
                         )}
-
                     </div>
 
+                    {/* Availability */}
+                    <div className="product-availability">
+                        <span className={`product-availability-dot ${listing.available ? "in-stock" : "out-of-stock"}`} />
+                        <span className="product-availability-text">
+                            {listing.available ? "In Stock" : "Out of Stock"}
+                        </span>
+                    </div>
 
-                    {/* =================================================
-                        QUICK INFORMATION
-                    ================================================= */}
-
-                    <div className="product-meta">
-
+                    {/* Quick Info */}
+                    <div className="product-quick-info">
 
                         {listing.location && (
-
-                            <div className="product-detail-row">
-
-                                <span className="product-detail-icon">
-                                    📍
-                                </span>
-
-
-                                <div>
-
-                                    <strong>
-                                        Location
-                                    </strong>
-
-
-                                    <span>
-                                        {listing.location}
-                                    </span>
-
-                                </div>
-
+                            <div className="product-quick-info-item">
+                                <MapPin size={16} />
+                                <span>{listing.location}</span>
                             </div>
-
                         )}
 
-
-                        <div className="product-detail-row">
-
-                            <span className="product-detail-icon">
-                                🏷️
-                            </span>
-
-
-                            <div>
-
-                                <strong>
-                                    Category
-                                </strong>
-
-
-                                <span>
-                                    {categoryText}
-                                </span>
-
-                            </div>
-
+                        <div className="product-quick-info-item">
+                            <Clock size={16} />
+                            <span>Condition: {conditionText}</span>
                         </div>
-
-
-                        <div className="product-detail-row">
-
-                            <span className="product-detail-icon">
-                                📦
-                            </span>
-
-
-                            <div>
-
-                                <strong>
-                                    Condition
-                                </strong>
-
-
-                                <span>
-                                    {conditionText}
-                                </span>
-
-                            </div>
-
-                        </div>
-
-
-                        <div className="product-detail-row">
-
-                            <span className="product-detail-icon">
-                                ✓
-                            </span>
-
-
-                            <div>
-
-                                <strong>
-                                    Availability
-                                </strong>
-
-
-                                <span
-                                    className={
-                                        listing.available
-                                            ? "available-text"
-                                            : "unavailable-text"
-                                    }
-                                >
-                                    {availabilityText}
-                                </span>
-
-                            </div>
-
-                        </div>
-
 
                     </div>
 
-
-                    {/* =================================================
-                        ACTION BUTTONS
-                    ================================================= */}
-
-                    <div className="action-buttons">
-
-
-                        <button
-                            type="button"
-                            className="buy-button"
-                            onClick={
-                                handleAddToCart
-                            }
-                            disabled={
-                                !listing.available ||
-                                addingToCart
-                            }
-                        >
-
-                            {addingToCart
-                                ? "Adding..."
-                                : "🛒 Add to Cart"}
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            className="buy-button"
-                            onClick={
-                                handleBuyNow
-                            }
-                            disabled={
-                                !listing.available
-                            }
-                        >
-
-                            ⚡ Buy Now
-
-                        </button>
-
-
-                        <button
-                            type="button"
-                            className="chat-button"
-                            onClick={
-                                contactSeller
-                            }
-                        >
-
-                            💬 Contact Seller
-
-                        </button>
-
+                    {/* Quantity Selector */}
+                    <div className="product-quantity-section">
+                        <label htmlFor="quantity">Quantity</label>
+                        <div className="product-quantity-controls">
+                            <button
+                                type="button"
+                                className="product-quantity-btn"
+                                onClick={decreaseQuantity}
+                                disabled={quantity <= 1 || addingToCart}
+                            >
+                                <Minus size={16} />
+                            </button>
+                            <span className="product-quantity-value">{quantity}</span>
+                            <button
+                                type="button"
+                                className="product-quantity-btn"
+                                onClick={increaseQuantity}
+                                disabled={addingToCart}
+                            >
+                                <Plus size={16} />
+                            </button>
+                        </div>
                     </div>
 
+                    {/* Action Buttons */}
+                    <div className="product-actions">
 
-                    {/* =================================================
-                        FAVOURITE MESSAGE
-                    ================================================= */}
-
-                    {favouriteMessage && (
-
-                        <div
-                            className="listing-form-message success"
-                            role="status"
-                            style={{
-                                marginTop: "12px"
-                            }}
+                        <button
+                            type="button"
+                            className="product-add-to-cart"
+                            onClick={handleAddToCart}
+                            disabled={!listing.available || addingToCart}
                         >
-
-                            {favouriteMessage}
-
-
-                            {" "}
-
-
-                            {isFavourite && (
-
-                                <Link to="/favourites">
-                                    View Favourites
-                                </Link>
-
-                            )}
-
-                        </div>
-
-                    )}
-
-
-                    {favouriteError && (
-
-                        <div
-                            className="listing-form-message error"
-                            role="alert"
-                            style={{
-                                marginTop: "12px"
-                            }}
-                        >
-
-                            {favouriteError}
-
-
-                            {!isAuthenticated && (
-
+                            {addingToCart ? (
                                 <>
-                                    {" "}
-
-                                    <Link to="/login">
-                                        Login
-                                    </Link>
+                                    <Loader2 size={20} className="spinning" />
+                                    Adding...
                                 </>
-
+                            ) : (
+                                <>
+                                    <ShoppingBag size={20} />
+                                    Add to Cart
+                                </>
                             )}
+                        </button>
 
-                        </div>
-
-                    )}
-
-
-                    {/* =================================================
-                        CART MESSAGE
-                    ================================================= */}
-
-                    {cartMessage && (
-
-                        <div
-                            className="listing-form-message success"
-                            role="status"
-                            style={{
-                                marginTop: "12px"
+                        <button
+                            type="button"
+                            className="product-buy-now"
+                            onClick={() => {
+                                handleAddToCart();
+                                // Navigate to cart after adding
+                                setTimeout(() => window.location.href = "/cart", 500);
                             }}
+                            disabled={!listing.available || addingToCart}
                         >
+                            <ShieldCheck size={20} />
+                            Buy Now
+                        </button>
 
-                            {cartMessage}
+                    </div>
 
-                            {" "}
-
-                            <Link to="/cart">
-                                View Cart
-                            </Link>
-
+                    {/* Cart Messages */}
+                    {cartMessage && (
+                        <div className="product-message product-message-success">
+                            <Check size={18} />
+                            <span>{cartMessage}</span>
+                            <Link to="/cart">View Cart →</Link>
                         </div>
-
                     )}
-
 
                     {cartError && (
-
-                        <div
-                            className="listing-form-message error"
-                            role="alert"
-                            style={{
-                                marginTop: "12px"
-                            }}
-                        >
-
-                            {cartError}
-
-
-                            {cartError.includes(
-                                "log in"
-                            ) && (
-
-                                <>
-                                    {" "}
-
-                                    <Link to="/login">
-                                        Login
-                                    </Link>
-                                </>
-
+                        <div className="product-message product-message-error">
+                            <span>{cartError}</span>
+                            {cartError.includes("log in") && (
+                                <Link to="/login">Login</Link>
                             )}
-
                         </div>
-
                     )}
 
+                    {/* Seller Info */}
+                    <div className="product-seller-section">
 
-                    {/* =================================================
-                        SELLER SUMMARY
-                    ================================================= */}
-
-                    <div className="seller-summary">
-
-
-                        <div className="seller-avatar">
-
-                            {sellerName
-                                .charAt(0)
-                                .toUpperCase()}
-
+                        <div className="product-seller-avatar">
+                            {sellerName.charAt(0).toUpperCase()}
                         </div>
 
-
-                        <div className="seller-summary-info">
-
-                            <span>
-                                Sold by
-                            </span>
-
-
-                            <strong>
-                                {sellerName}
-                            </strong>
-
-
+                        <div className="product-seller-info">
+                            <span className="product-seller-label">Sold by</span>
+                            <strong className="product-seller-name">{sellerName}</strong>
                             {listing.owner?.verifiedSeller && (
-
-                                <span className="verified-badge">
-
-                                    ✓ Verified Seller
-
+                                <span className="product-seller-verified">
+                                    <ShieldCheck size={14} />
+                                    Verified Seller
                                 </span>
-
                             )}
-
                             {businessStatus && (
-                                <span style={{ color: businessStatus.isOpen ? "#15803d" : "#b91c1c", fontWeight: 700 }}>
-                                    {businessStatus.isOpen ? "● Open" : "● Closed"} · {businessStatus.message}
+                                <span className={`product-seller-status ${businessStatus.isOpen ? "open" : "closed"}`}>
+                                    {businessStatus.isOpen ? "🟢 Open" : "🔴 Closed"} · {businessStatus.message}
                                 </span>
                             )}
-
                         </div>
+
+                        <button
+                            type="button"
+                            className="product-contact-seller"
+                            onClick={contactSeller}
+                        >
+                            <MessageCircle size={18} />
+                            Contact Seller
+                        </button>
 
                     </div>
 
                 </div>
 
-            </section>
-
+            </div>
 
             {/* =================================================
                 DESCRIPTION
             ================================================= */}
 
-            <section className="description-card">
-
-                <h2>
-                    Product Description
-                </h2>
-
-
-                <p>
-
-                    {listing.description ||
-                        "No description provided by the seller."}
-
-                </p>
-
+            <section className="product-description-card">
+                <h2>Description</h2>
+                <div className="product-description-content">
+                    <p>{listing.description || "No description provided by the seller."}</p>
+                </div>
             </section>
-
-
-            {/* =================================================
-                DYNAMIC DETAILS
-            ================================================= */}
-
-            {detailEntries.length > 0 && (
-
-                <section className="product-details-card">
-
-                    <h3>
-                        Listing Details
-                    </h3>
-
-
-                    <div className="details-grid">
-
-                        {detailEntries.map(
-                            (
-                                [key, value]
-                            ) => (
-
-                                <div
-                                    className="detail-item"
-                                    key={key}
-                                >
-
-                                    <span>
-
-                                        {key
-                                            .replace(
-                                                /([A-Z])/g,
-                                                " $1"
-                                            )
-                                            .replace(
-                                                /^./,
-                                                char =>
-                                                    char.toUpperCase()
-                                            )}
-
-                                    </span>
-
-
-                                    <strong>
-                                        {String(value)}
-                                    </strong>
-
-                                </div>
-
-                            )
-                        )}
-
-                    </div>
-
-                </section>
-
-            )}
-
 
             {/* =================================================
                 SELLER INFORMATION
             ================================================= */}
 
-            <section className="seller-card">
-
-
-                <div className="seller-card-content">
-
-
-                    <div className="seller-avatar large">
-
-                        {sellerName
-                            .charAt(0)
-                            .toUpperCase()}
-
+            <section className="product-seller-card">
+                <div className="product-seller-card-header">
+                    <div className="product-seller-card-avatar">
+                        {sellerName.charAt(0).toUpperCase()}
                     </div>
-
-
                     <div>
-
-                        <h2>
-                            Seller Information
-                        </h2>
-
-
-                        <p className="seller-name">
-
-                            <strong>
-                                {sellerName}
-                            </strong>
-
-
-                            {listing.owner?.verifiedSeller && (
-
-                                <span className="verified-badge">
-
-                                    ✓ Verified Seller
-
-                                </span>
-
-                            )}
-
+                        <h3>{sellerName}</h3>
+                        {listing.owner?.verifiedSeller && (
+                            <span className="product-seller-verified-badge">
+                                <ShieldCheck size={16} />
+                                Verified Seller
+                            </span>
+                        )}
+                        <p>
+                            {listing.owner?.phone && `📞 ${listing.owner.phone}`}
+                            {listing.owner?.email && ` · ✉️ ${listing.owner.email}`}
                         </p>
-
-
-                        {listing.owner?.phone && (
-
-                            <p>
-                                📞 {listing.owner.phone}
-                            </p>
-
-                        )}
-
-
-                        {listing.owner?.email && (
-
-                            <p>
-                                ✉️ {listing.owner.email}
-                            </p>
-
-                        )}
-
-                        {businessStatus && (
-                            <p style={{ color: businessStatus.isOpen ? "#15803d" : "#b91c1c", fontWeight: 700 }}>
-                                {businessStatus.isOpen ? "● Open" : "● Closed"} · {businessStatus.message}
-                            </p>
-                        )}
-
-                        {sellerProfile?.businessHours?.length === 7 && (
-                            <div style={{ marginTop: "14px", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "5px 16px", fontSize: "14px" }}>
-                                {sellerProfile.businessHours.map(hour => (
-                                    <span key={hour.dayOfWeek}>
-                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][hour.dayOfWeek]}: {hour.isOpen ? `${formatBusinessTime(hour.openingTime)}–${formatBusinessTime(hour.closingTime)}` : "Closed"}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-
                     </div>
-
                 </div>
 
+                {businessStatus && (
+                    <div className={`product-seller-business-status ${businessStatus.isOpen ? "open" : "closed"}`}>
+                        {businessStatus.isOpen ? "🟢 Open" : "🔴 Closed"} · {businessStatus.message}
+                    </div>
+                )}
+
+                {sellerProfile?.businessHours?.length === 7 && (
+                    <div className="product-seller-hours">
+                        <h4>Business Hours</h4>
+                        <div className="product-seller-hours-grid">
+                            {sellerProfile.businessHours.map(hour => {
+                                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                                return (
+                                    <span key={hour.dayOfWeek}>
+                                        <strong>{dayNames[hour.dayOfWeek]}:</strong>
+                                        {hour.isOpen
+                                            ? ` ${hour.openingTime}–${hour.closingTime}`
+                                            : " Closed"}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 <button
                     type="button"
-                    className="seller-button"
-                    onClick={
-                        contactSeller
-                    }
+                    className="product-seller-contact-btn"
+                    onClick={contactSeller}
                 >
-
-                    💬 Contact Seller
-
+                    <MessageCircle size={18} />
+                    Contact Seller
                 </button>
-
             </section>
-
-
-            {/* =================================================
-                FULLSCREEN IMAGE LIGHTBOX
-            ================================================= */}
-
-            {isLightboxOpen &&
-                activeImageUrl && (
-
-                    <div
-                        className="image-lightbox"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label="Product image viewer"
-                        onClick={() =>
-                            setIsLightboxOpen(false)
-                        }
-                    >
-
-
-                        <button
-                            type="button"
-                            className="lightbox-close"
-                            onClick={
-                                event => {
-
-                                    event.stopPropagation();
-
-                                    setIsLightboxOpen(
-                                        false
-                                    );
-
-                                }
-                            }
-                            aria-label="Close image viewer"
-                        >
-
-                            <X
-                                size={28}
-                            />
-
-                        </button>
-
-
-                        <div
-                            className="lightbox-content"
-                            onClick={
-                                event =>
-                                    event.stopPropagation()
-                            }
-                        >
-
-                            <img
-                                src={activeImageUrl}
-                                alt={listing.title}
-                                className="lightbox-image"
-                            />
-
-
-                            {imageCount > 1 && (
-
-                                <div className="lightbox-counter">
-
-                                    {safeImageIndex + 1}
-                                    {" / "}
-                                    {imageCount}
-
-                                </div>
-
-                            )}
-
-
-                            {imageCount > 1 && (
-
-                                <button
-                                    type="button"
-                                    className="lightbox-nav lightbox-prev"
-                                    onClick={
-                                        showPreviousImage
-                                    }
-                                    aria-label="Previous image"
-                                >
-
-                                    <ChevronLeft
-                                        size={36}
-                                    />
-
-                                </button>
-
-                            )}
-
-
-                            {imageCount > 1 && (
-
-                                <button
-                                    type="button"
-                                    className="lightbox-nav lightbox-next"
-                                    onClick={
-                                        showNextImage
-                                    }
-                                    aria-label="Next image"
-                                >
-
-                                    <ChevronRight
-                                        size={36}
-                                    />
-
-                                </button>
-
-                            )}
-
-                        </div>
-
-                    </div>
-
-                )}
-
 
             {/* =================================================
                 RELATED PRODUCTS
             ================================================= */}
 
             {relatedListings.length > 0 && (
+                <section className="product-related">
+                    <h2>You May Also Like</h2>
+                    <div className="product-related-grid">
+                        {relatedListings.map(item => (
+                            <ListingCard
+                                key={item.id}
+                                listing={item}
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
 
-                <section className="related-products">
+            {/* =================================================
+                FULLSCREEN LIGHTBOX
+            ================================================= */}
 
-                    <h2>
-                        You may also like
-                    </h2>
+            {isLightboxOpen && activeImageUrl && (
 
+                <div
+                    className="product-lightbox"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Product image viewer"
+                    onClick={() => setIsLightboxOpen(false)}
+                >
 
-                    <div className="related-products-grid">
+                    <button
+                        type="button"
+                        className="product-lightbox-close"
+                        onClick={() => setIsLightboxOpen(false)}
+                        aria-label="Close viewer"
+                    >
+                        <X size={28} />
+                    </button>
 
-                        {relatedListings.map(
-                            item => (
+                    <div
+                        className="product-lightbox-content"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <img
+                            src={getImageUrl(activeImageUrl)}
+                            alt={listing.title}
+                            className="product-lightbox-image"
+                        />
 
-                                <ListingCard
-                                    key={item.id}
-                                    listing={item}
-                                />
+                        {imageCount > 1 && (
+                            <div className="product-lightbox-counter">
+                                {safeImageIndex + 1} / {imageCount}
+                            </div>
+                        )}
 
-                            )
+                        {imageCount > 1 && (
+                            <>
+                                <button
+                                    type="button"
+                                    className="product-lightbox-nav product-lightbox-prev"
+                                    onClick={showPreviousImage}
+                                    aria-label="Previous image"
+                                >
+                                    <ChevronLeft size={36} />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="product-lightbox-nav product-lightbox-next"
+                                    onClick={showNextImage}
+                                    aria-label="Next image"
+                                >
+                                    <ChevronRight size={36} />
+                                </button>
+                            </>
                         )}
 
                     </div>
 
-                </section>
+                </div>
 
             )}
 

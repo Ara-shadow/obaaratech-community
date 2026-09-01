@@ -8,10 +8,6 @@ import {
 } from "react-router-dom";
 
 import {
-    ChevronRight
-} from "lucide-react";
-
-import {
     getCategoryTree
 } from "../api/categories";
 
@@ -19,23 +15,19 @@ import type {
     CategoryTree
 } from "../types/category";
 
-
 export default function CategorySection() {
-
-    const navigate =
-        useNavigate();
-
 
     const [
         categories,
         setCategories
     ] = useState<CategoryTree[]>([]);
 
-
     const [
         loading,
         setLoading
     ] = useState(true);
+
+    const navigate = useNavigate();
 
 
     /* =====================================================
@@ -81,7 +73,7 @@ export default function CategorySection() {
     ) {
 
         navigate(
-            `/?category=${encodeURIComponent(categoryId)}`
+            `/categories?category=${encodeURIComponent(categoryId)}`
         );
 
     }
@@ -134,31 +126,6 @@ export default function CategorySection() {
                     </h2>
 
                 </div>
-
-
-                {
-                    categories.length > 8 && (
-
-                        <button
-                            type="button"
-                            className="section-view-all"
-                            onClick={() =>
-                                navigate(
-                                    "/marketplace"
-                                )
-                            }
-                        >
-
-                            View all
-
-                            <ChevronRight
-                                size={17}
-                            />
-
-                        </button>
-
-                    )
-                }
 
             </div>
 

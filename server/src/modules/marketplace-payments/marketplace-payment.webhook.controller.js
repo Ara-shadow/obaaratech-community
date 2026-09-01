@@ -35,7 +35,8 @@ export async function flutterwaveMarketplaceWebhookController(request, reply) {
     // =================================
     // SECRET HASH
     // =================================
-    const secretHash = process.env.FLW_SECRET_HASH;
+    const secretHash = process.env.FLUTTERWAVE_WEBHOOK_SECRET_HASH ||
+        process.env.FLW_SECRET_HASH;
     if (!secretHash ||
         !secretHash.trim()) {
         request.log.error("FLW_SECRET_HASH is not configured");

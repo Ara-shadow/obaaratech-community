@@ -905,7 +905,7 @@ export async function getSellerEarningByOrderItem(
     orderItemId: string
 ) {
 
-    return prisma.sellerEarning.findUnique({
+    return prisma.sellerEarning.findFirst({
 
         where: {
 

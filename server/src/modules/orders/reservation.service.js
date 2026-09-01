@@ -49,6 +49,14 @@ export async function releaseExpiredReservations() {
             // =====================================
             // CANCEL EXPIRED ORDER
             // =====================================
+            await tx.orderItem.updateMany({
+                where: {
+                    orderId: order.id
+                },
+                data: {
+                    status: "CANCELLED"
+                }
+            });
             await tx.order.update({
                 where: {
                     id: order.id

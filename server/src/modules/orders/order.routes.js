@@ -1,51 +1,45 @@
 import { checkoutController, getBuyerOrdersController, getBuyerOrderController, getSellerOrdersController, getSellerOrderController, updateSellerOrderStatusController } from "./order.controller.js";
 export default async function orderRoutes(app) {
-    // =====================================
-    // BUYER CHECKOUT
-    // =====================================
+    // =============================================
+    // CHECKOUT
+    // POST /api/checkout
+    // =============================================
     app.post("/checkout", {
-        preHandler: [
-            app.authenticate
-        ]
+        preHandler: app.authenticate
     }, checkoutController);
-    // =====================================
+    // =============================================
     // BUYER ORDERS
-    // =====================================
+    // GET /api/orders
+    // =============================================
     app.get("/orders", {
-        preHandler: [
-            app.authenticate
-        ]
+        preHandler: app.authenticate
     }, getBuyerOrdersController);
-    // =====================================
-    // SINGLE BUYER ORDER
-    // =====================================
+    // =============================================
+    // BUYER ORDER
+    // GET /api/orders/:id
+    // =============================================
     app.get("/orders/:id", {
-        preHandler: [
-            app.authenticate
-        ]
+        preHandler: app.authenticate
     }, getBuyerOrderController);
-    // =====================================
+    // =============================================
     // SELLER ORDERS
-    // =====================================
+    // GET /api/seller/orders
+    // =============================================
     app.get("/seller/orders", {
-        preHandler: [
-            app.authenticate
-        ]
+        preHandler: app.authenticate
     }, getSellerOrdersController);
-    // =====================================
-    // SINGLE SELLER ORDER
-    // =====================================
+    // =============================================
+    // SELLER ORDER
+    // GET /api/seller/orders/:id
+    // =============================================
     app.get("/seller/orders/:id", {
-        preHandler: [
-            app.authenticate
-        ]
+        preHandler: app.authenticate
     }, getSellerOrderController);
-    // =====================================
-    // UPDATE SELLER ORDER STATUS
-    // =====================================
+    // =============================================
+    // SELLER ORDER STATUS
+    // PATCH /api/seller/orders/:id/status
+    // =============================================
     app.patch("/seller/orders/:id/status", {
-        preHandler: [
-            app.authenticate
-        ]
+        preHandler: app.authenticate
     }, updateSellerOrderStatusController);
 }
