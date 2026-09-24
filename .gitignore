@@ -32,3 +32,26 @@ node_modules/
 *.backup
 *.dump
 server/backups/
+
+# Build / deploy artifacts — NEVER commit
+*.zip
+*.tar.gz
+*.tgz
+
+# Local backups
+*.backup
+*.backup.sql
+*.dump
+server/backups/
+server/backup.sql
+server/prisma/*.backup
+server/prisma/*.backup.sql
+
+# Temporary schema snapshots
+*.before_*
+*.after_*
+*.minimal_backup
+
+# Tooling caches
+.claude/
+.windsurf/
