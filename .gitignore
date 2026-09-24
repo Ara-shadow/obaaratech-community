@@ -17,3 +17,18 @@ server/dist/
 package-lock.json
 client/package-lock.json
 server/package-lock.json
+
+# Environment files — NEVER commit
+.env
+.env.local
+.env.*.local
+*.env
+
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Backups
+*.backup
+*.dump
+server/backups/
