@@ -9,7 +9,7 @@ export const registerSchema = z.object({
 
 
   email: z
-    .email("Invalid email address"),
+  .string().email("Invalid email address"),
 
 
   phone: z

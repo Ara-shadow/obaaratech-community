@@ -1,0 +1,19 @@
+
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Build outputs
+dist/
+client/dist/
+server/dist/
+
+# Environment files
+.env
+*.log
+
+# Lock files (will be regenerated)
+package-lock.json
+client/package-lock.json
+server/package-lock.json

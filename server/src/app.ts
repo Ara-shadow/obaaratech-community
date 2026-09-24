@@ -48,6 +48,11 @@ import sellerRoutes from "./modules/sellers/seller.routes.js";
 import sellerListingRoutes from "./modules/sellers/seller.listings.routes.js";
 
 
+// PAYSTACK
+
+import paystackRoutes from "./modules/marketplace-payments/paystack.routes.js";
+
+
 
 
 // ===============================
@@ -375,7 +380,6 @@ notificationsRoutes,
 
 
 
-
 // ===============================
 // FAVOURITES
 // ===============================
@@ -398,7 +402,6 @@ favouriteRoutes,
 // ===============================
 // UPLOADS
 // ===============================
-
 
 await app.register(
 uploadRoutes,
@@ -461,6 +464,26 @@ await app.register(
 planRoutes,
 {
     prefix:"/api/plans"
+}
+
+);
+
+
+
+
+
+
+
+
+// ===============================
+// PAYSTACK PAYMENTS
+// ===============================
+
+
+await app.register(
+paystackRoutes,
+{
+    prefix:"/api/marketplace/payments/paystack"
 }
 
 );

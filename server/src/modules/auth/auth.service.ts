@@ -52,8 +52,6 @@ export async function registerUser(
 
                 phone:data.phone,
 
-                whatsapp:data.whatsapp,
-
                 password:hashedPassword,
 
                 role:"USER"
@@ -92,8 +90,6 @@ export async function registerUser(
             email:user.email,
 
             phone:user.phone,
-
-            whatsapp:user.whatsapp,
 
             role:user.role
 

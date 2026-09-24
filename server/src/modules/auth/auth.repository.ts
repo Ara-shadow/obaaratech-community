@@ -21,7 +21,6 @@ export async function createUser(data: {
       name: data.name,
       email: data.email,
       phone: data.phone,
-      whatsapp: data.whatsapp ?? null,
       password: data.password,
 
       profile: {
@@ -30,7 +29,7 @@ export async function createUser(data: {
     },
 
     include: {
-      profile: true,
+      
     },
   });
 }
