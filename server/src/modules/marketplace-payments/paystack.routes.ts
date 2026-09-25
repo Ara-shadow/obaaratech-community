@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+﻿import type { FastifyInstance, FastifyRequest } from "fastify";
 import { authenticate } from "../../middleware/auth.js";
 import { prisma } from "../../lib/prisma.js";
 import {
@@ -7,9 +7,32 @@ import {
     verifyPaystackWebhook
 } from "./providers/paystack-marketplace.provider.js";
 
+declare module "fastify" {
+    interface FastifyRequest {
+        rawBody?: string;
+    }
+}
+
 export default async function paystackRoutes(app: FastifyInstance) {
 
-    // Initialize Paystack Payment
+    app.addHook("preParsing", async (request, _reply, payload) => {
+        if (
+            request.method === "POST" &&
+            request.url.endsWith("/paystack/webhook")
+        ) {
+            const chunks: Buffer[] = [];
+            for await (const chunk of payload) {
+                chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+            }
+            const raw = Buffer.concat(chunks);
+            request.rawBody = raw.toString("utf8");
+
+            const { Readable } = await import("node:stream");
+            return Readable.from(raw);
+        }
+        return payload;
+    });
+
     app.post(
         "/initialize",
         { preHandler: [authenticate] },
@@ -42,33 +65,32 @@ export default async function paystackRoutes(app: FastifyInstance) {
             return {
                 success: true,
                 checkoutUrl: result.checkoutUrl,
-                reference: result.reference
+                reference: result.reference,
+                accessCode: result.accessCode
             };
         }
     );
 
-    // Verify Payment
     app.post(
         "/verify",
         { preHandler: [authenticate] },
         async (request, reply) => {
             const body = request.body as { reference: string };
-            
+
             const verification = await verifyPaystackPayment(body.reference);
-            
+
             if (verification.status === "success") {
-                // Find transaction by reference
                 const transaction = await prisma.marketplaceTransaction.findFirst({
                     where: { transactionReference: body.reference }
                 });
 
-                if (transaction) {
+                if (transaction && transaction.status !== "SUCCESSFUL") {
                     await prisma.marketplaceTransaction.update({
                         where: { id: transaction.id },
                         data: {
                             status: "SUCCESSFUL",
                             paidAt: new Date(),
-                            verifiedAt: new Date()
+                            providerReference: String(verification.reference ?? "")
                         }
                     });
 
@@ -86,20 +108,29 @@ export default async function paystackRoutes(app: FastifyInstance) {
         }
     );
 
-    // Paystack Webhook (Public)
     app.post(
         "/webhook",
         async (request, reply) => {
             const signature = request.headers["x-paystack-signature"] as string;
-            const rawBody = (request as any).rawBody;
+            const rawBody = request.rawBody;
+
+            if (!signature || !rawBody) {
+                request.log.warn("Paystack webhook: missing signature or raw body");
+                return reply.code(401).send({ status: "error" });
+            }
 
             if (!verifyPaystackWebhook(rawBody, signature)) {
+                request.log.warn("Paystack webhook: invalid signature");
                 return reply.code(401).send({ status: "error" });
             }
 
             const body = request.body as any;
 
-            // Handle charge.success event [citation:1]
+            request.log.info(
+                { event: body?.event, reference: body?.data?.reference },
+                "Paystack webhook received"
+            );
+
             if (body.event === "charge.success") {
                 const reference = body.data.reference;
 
@@ -113,7 +144,6 @@ export default async function paystackRoutes(app: FastifyInstance) {
                         data: {
                             status: "SUCCESSFUL",
                             paidAt: new Date(),
-                            verifiedAt: new Date(),
                             providerReference: String(body.data.id)
                         }
                     });
@@ -122,6 +152,16 @@ export default async function paystackRoutes(app: FastifyInstance) {
                         where: { id: transaction.orderId },
                         data: { paymentStatus: "PAID" }
                     });
+
+                    request.log.info(
+                        { orderId: transaction.orderId, reference },
+                        "Order marked PAID via webhook"
+                    );
+                } else {
+                    request.log.info(
+                        { reference },
+                        "Webhook: transaction already processed (idempotent skip)"
+                    );
                 }
             }
 

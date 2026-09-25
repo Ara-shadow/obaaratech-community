@@ -1,4 +1,4 @@
-import Paystack from "@sconyema/paystack-js";
+﻿import Paystack from "@sconyema/paystack-js";
 import { prisma } from "../../../lib/prisma.js";
 import crypto from "crypto";
 
@@ -7,7 +7,7 @@ const paystack = new Paystack(process.env.PAYSTACK_SECRET_KEY!);
 export interface PaystackInitializeParams {
     orderId: string;
     email: string;
-    amount: number; // in Naira (will be converted to kobo)
+    amount: number; // in KOBO (as stored in Order.total)
     callbackUrl: string;
 }
 
@@ -17,12 +17,8 @@ export async function initializePaystackPayment({
     amount,
     callbackUrl
 }: PaystackInitializeParams) {
-    // Generate unique reference
     const reference = `PS-${orderId}-${Date.now()}`;
-
-    // Paystack expects amount in kobo (subunit)
-    // ₦500 = 50000 kobo
-    const amountInKobo = Math.round(amount * 100);
+    const amountInKobo = Math.round(amount);
 
     const response = await paystack.transactions.initialize({
         email,
@@ -42,7 +38,6 @@ export async function initializePaystackPayment({
         }
     });
 
-    // Save transaction reference in database
     await prisma.marketplaceTransaction.upsert({
         where: { orderId },
         update: {
@@ -70,7 +65,7 @@ export async function verifyPaystackPayment(reference: string) {
 
     return {
         status: transaction.status,
-        amount: transaction.amount / 100, // Convert kobo back to Naira
+        amount: transaction.amount / 100,
         reference: transaction.reference,
         paidAt: transaction.paid_at,
         channel: transaction.channel,
