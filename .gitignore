@@ -55,3 +55,7 @@ server/prisma/*.backup.sql
 # Tooling caches
 .claude/
 .windsurf/
+
+# Deploy artifacts
+deploy-bundle/
+obaaratech-deploy.zip
