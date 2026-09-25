@@ -1,0 +1,456 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  name                String
+  email               String               @unique
+  password            String
+  phone               String?
+  avatar              String?
+  verifiedSeller      Boolean              @default(false)
+  role                UserRole             @default(USER)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  whatsapp            String?
+  cart                Cart?
+  comments            Comment[]
+  buyerConversations  Conversation[]       @relation("BuyerConversations")
+  sellerConversations Conversation[]       @relation("SellerConversations")
+  favourites          Favourite[]
+  likes               Like[]
+  listings            Listing[]
+  messages            Message[]
+  actedNotifications  Notification[]       @relation("NotificationActor")
+  notifications       Notification[]       @relation("NotificationUser")
+  orders              Order[]
+  sellerOrderItems    OrderItem[]          @relation("OrderItemSeller")
+  posts               Post[]
+  profile             Profile?
+  reviews             Review[]
+  businessHours       SellerBusinessHour[]
+  sellerPayments      SellerPayment[]
+  sellerSubscription  SellerSubscription?
+}
+
+model SellerBusinessHour {
+  id          String   @id @default(uuid())
+  userId      String
+  dayOfWeek   Int
+  isOpen      Boolean  @default(true)
+  openingTime String?
+  closingTime String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
+}
+
+model SellerPlan {
+  id              String               @id @default(uuid())
+  name            String               @unique
+  price           Int                  @default(0)
+  duration        Int
+  maxListings     Int                  @default(5)
+  imageLimit      Int                  @default(3)
+  featuredListing Boolean              @default(false)
+  prioritySearch  Boolean              @default(false)
+  verifiedBadge   Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  isActive        Boolean              @default(true)
+  payments        SellerPayment[]
+  subscriptions   SellerSubscription[]
+}
+
+model SellerSubscription {
+  id         String     @id @default(uuid())
+  userId     String     @unique
+  planId     String
+  startDate  DateTime   @default(now())
+  expiryDate DateTime
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  plan       SellerPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SellerPayment {
+  id            String        @id @default(uuid())
+  userId        String
+  planId        String
+  amount        Int
+  paymentMethod PaymentMethod @default(BANK_TRANSFER)
+  status        PaymentStatus @default(PENDING)
+  reference     String?
+  proofUrl      String?
+  adminNote     String?
+  submittedAt   DateTime      @default(now())
+  reviewedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  plan          SellerPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  icon        String?
+  parentId    String?
+  createdAt   DateTime   @default(now())
+  description String?
+  image       String?
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  listings    Listing[]
+}
+
+model Listing {
+  id            String         @id @default(uuid())
+  title         String
+  description   String
+  price         Int?
+  location      String?
+  condition     String?
+  type          ListingType    @default(PRODUCT)
+  negotiable    Boolean        @default(true)
+  available     Boolean        @default(true)
+  status        ListingStatus  @default(ACTIVE)
+  featured      Boolean        @default(false)
+  ownerId       String
+  categoryId    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  details       Json?
+  currency      Currency       @default(NGN)
+  reservedAt    DateTime?
+  cartItems     CartItem[]
+  conversations Conversation[]
+  favourites    Favourite[]
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  images        ListingImage[]
+  orderItems    OrderItem[]
+  reviews       Review[]
+}
+
+model ListingImage {
+  id        String  @id @default(uuid())
+  url       String
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+model Favourite {
+  id        String   @id @default(uuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  listingId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, listingId])
+}
+
+model Order {
+  id               String             @id @default(uuid())
+  orderNumber      String             @unique
+  buyerId          String
+  subtotal         Int
+  deliveryFee      Int                @default(0)
+  total            Int
+  paymentMethod    OrderPaymentMethod @default(CASH_ON_DELIVERY)
+  paymentStatus    OrderPaymentStatus @default(PENDING)
+  status           OrderStatus        @default(PENDING)
+  deliveryAddress  String
+  phone            String
+  note             String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  currency         Currency           @default(NGN)
+  paymentExpiresAt DateTime?
+  buyer            User               @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  items            OrderItem[]
+  payment          OrderPayment?
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+model OrderPayment {
+  id            String             @id @default(uuid())
+  orderId       String             @unique
+  amount        Int
+  currency      Currency           @default(NGN)
+  paymentMethod OrderPaymentMethod
+  status        OrderPaymentStatus @default(PENDING)
+  reference     String?
+  provider      String?
+  proofUrl      String?
+  metadata      Json?
+  paidAt        DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  order         Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String          @id @default(uuid())
+  orderId   String
+  listingId String
+  sellerId  String
+  title     String
+  unitPrice Int
+  quantity  Int
+  subtotal  Int
+  createdAt DateTime        @default(now())
+  status    OrderItemStatus @default(PENDING)
+  listing   Listing         @relation(fields: [listingId], references: [id])
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  seller    User            @relation("OrderItemSeller", fields: [sellerId], references: [id])
+
+  @@index([orderId])
+  @@index([listingId])
+  @@index([sellerId])
+  @@index([status])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Profile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  bio       String?
+  avatar    String?
+  location  String?
+  website   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id            String         @id @default(uuid())
+  title         String?
+  content       String
+  image         String?
+  authorId      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  comments      Comment[]
+  likes         Like[]
+  notifications Notification[]
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  actorId   String
+  postId    String?
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  actor     User     @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postId])
+  @@index([createdAt])
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  buyerId   String
+  sellerId  String
+  listingId String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  buyer     User      @relation("BuyerConversations", fields: [buyerId], references: [id], onDelete: Cascade)
+  listing   Listing?  @relation(fields: [listingId], references: [id])
+  seller    User      @relation("SellerConversations", fields: [sellerId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@unique([listingId, buyerId, sellerId], name: "listingId_buyerId_sellerId")
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([listingId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  text           String?
+  content        String?
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  PAYSTACK
+  FLUTTERWAVE
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  RESERVED
+  SOLD
+  REJECTED
+  EXPIRED
+}
+
+enum ListingType {
+  PRODUCT
+  SERVICE
+  PROPERTY
+  VEHICLE
+  JOB
+  COURSE
+  EVENT
+  ANNOUNCEMENT
+}
+
+enum UserRole {
+  USER
+  SELLER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderItemStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum OrderPaymentMethod {
+  CASH_ON_DELIVERY
+  BANK_TRANSFER
+  PAYSTACK
+  FLUTTERWAVE
+}
+
+enum Currency {
+  NGN
+  USD
+  GBP
+  EUR
+}

@@ -1,122 +1,135 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import "./App.css";
+import "./index.css";
+
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import AdminLayout from "./components/AdminLayout";
+
+import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
+
+// PUBLIC PAGES
+import Home from "./pages/Home";
+import CategoriesPage from "./pages/CategoriesPage";
+import ProductDetails from "./pages/ProductDetails";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+
+// STATIC PAGES
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import FAQs from "./pages/FAQs";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import NotFound from "./pages/NotFound";
+
+// PROTECTED BUYER PAGES
+import CreateListing from "./pages/CreateListing";
+import MyListings from "./pages/MyListings";
+import Account from "./pages/Account";
+import Profile from "./pages/Profile";
+import Favourites from "./pages/Favourites";
+import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import OrderDetails from "./pages/OrderDetails";
+import PaymentCallback from "./pages/PaymentCallback";
+
+// SELLER PAGES
+import SellerDashboard from "./pages/SellerDashboard";
+import SellerBusinessHours from "./pages/SellerBusinessHours";
+import SellerFinance from "./pages/SellerFinance";
+
+// ADMIN PAGES
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminFinance from "./pages/AdminFinance";
+import AdminSettlements from "./pages/AdminSettlements";
+import AdminCategories from "./pages/AdminCategories";
+import AdminBanners from "./pages/AdminBanners";
 
 function App() {
-  const [count, setCount] = useState(0)
+    return (
+        <AuthProvider>
+            <CartProvider>
+                <BrowserRouter>
+                    <div className="app-wrapper">
+                        <Navbar />
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+                        <main className="app-main">
+                            <Routes>
+                                {/* PUBLIC ROUTES */}
+                                <Route path="/" element={<Home />} />
+                                <Route path="/marketplace" element={<Home />} />
+                                <Route path="/categories" element={<CategoriesPage />} />
+                                <Route path="/product/:id" element={<ProductDetails />} />
+                                <Route path="/login" element={<Login />} />
+                                <Route path="/register" element={<Register />} />
 
-      <div className="ticks"></div>
+                                {/* STATIC ROUTES */}
+                                <Route path="/about" element={<About />} />
+                                <Route path="/contact" element={<Contact />} />
+                                <Route path="/faqs" element={<FAQs />} />
+                                <Route path="/terms" element={<Terms />} />
+                                <Route path="/privacy" element={<Privacy />} />
+                                <Route path="/safety" element={<NotFound title="Buyer Safety Centre" />} />
+                                <Route path="/delivery" element={<NotFound title="Delivery Information" />} />
+                                <Route path="/returns" element={<NotFound title="Return Policy" />} />
+                                <Route path="/bulk" element={<NotFound title="Bulk Purchase" />} />
+                                <Route path="/sitemap" element={<NotFound title="Site Map" />} />
+                                <Route path="/track-order" element={<NotFound title="Track My Order" />} />
+                                <Route path="/authentic" element={<NotFound title="Authentic Items Policy" />} />
+                                <Route path="/affiliate" element={<NotFound title="Become an Affiliate" />} />
+                                <Route path="/careers" element={<NotFound title="Careers" />} />
+                                <Route path="/blog" element={<NotFound title="Our Blog" />} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+                                {/* PROTECTED BUYER ROUTES */}
+                                <Route path="/create-listing" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
+                                <Route path="/my-listings" element={<ProtectedRoute><MyListings /></ProtectedRoute>} />
+                                <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+                                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                                <Route path="/favourites" element={<ProtectedRoute><Favourites /></ProtectedRoute>} />
+                                <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+                                <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                                <Route path="/orders/:orderId/payment/callback" element={<ProtectedRoute><PaymentCallback /></ProtectedRoute>} />
+                                <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+                                {/* SELLER ROUTES */}
+                                <Route path="/seller-dashboard" element={<ProtectedRoute><SellerDashboard /></ProtectedRoute>} />
+                                <Route path="/business-hours" element={<ProtectedRoute><SellerBusinessHours /></ProtectedRoute>} />
+                                <Route path="/seller-finance" element={<ProtectedRoute><SellerFinance /></ProtectedRoute>} />
+
+                                {/* ADMIN ROUTES */}
+                                <Route
+                                    path="/admin"
+                                    element={
+                                        <AdminRoute>
+                                            <AdminLayout />
+                                        </AdminRoute>
+                                    }
+                                >
+                                    <Route index element={<AdminDashboard />} />
+                                    <Route path="categories" element={<AdminCategories />} />
+                                    <Route path="settlements" element={<AdminSettlements />} />
+                                    <Route path="finance" element={<AdminFinance />} />
+                                    <Route path="banners" element={<AdminBanners />} />
+                                    <Route path="users" element={<AdminDashboard />} />
+                                </Route>
+
+                                {/* FALLBACK */}
+                                <Route path="*" element={<NotFound />} />
+                            </Routes>
+                        </main>
+
+                        <Footer />
+                    </div>
+                </BrowserRouter>
+            </CartProvider>
+        </AuthProvider>
+    );
 }
 
-export default App
+export default App;
