@@ -37,6 +37,10 @@ model User {
   SellerBusinessHour                       SellerBusinessHour[]
   SellerPayment                            SellerPayment[]
   sellerSubscription                       SellerSubscription?
+  SellerBalance                            SellerBalance?
+  SellerBankAccount                        SellerBankAccount[]
+  SellerSettlement                         SellerSettlement[]
+  SellerEarning                            SellerEarning[]
 }
 
 model SellerPlan {
@@ -285,6 +289,7 @@ model OrderItem {
   Listing   Listing         @relation(fields: [listingId], references: [id])
   Order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   User      User            @relation(fields: [sellerId], references: [id])
+  SellerEarning SellerEarning?
 
   @@index([listingId])
   @@index([orderId])
@@ -397,6 +402,108 @@ model SellerPayment {
   @@index([userId])
 }
 
+// ============================================
+// SELLER FINANCE MODELS
+// ============================================
+
+model SellerBalance {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  pendingBalance    Int      @default(0)
+  availableBalance  Int      @default(0)
+  totalSales        Int      @default(0)
+  totalCommission   Int      @default(0)
+  totalSettled      Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SellerBankAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  bankName      String
+  bankCode      String
+  accountNumber String
+  accountName   String
+  isVerified    Boolean  @default(false)
+  isDefault     Boolean  @default(false)
+  verifiedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  User        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Settlements SellerSettlement[]
+
+  @@index([userId])
+  @@index([accountNumber])
+}
+
+model SellerSettlement {
+  id                String           @id @default(uuid())
+  sellerId          String
+  bankAccountId     String
+  amount            Int
+  status            SettlementStatus @default(PENDING)
+  providerReference String?
+  failureReason     String?
+  requestedAt       DateTime         @default(now())
+  reviewedAt        DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  User        User              @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  BankAccount SellerBankAccount @relation(fields: [bankAccountId], references: [id])
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([providerReference])
+}
+
+model SellerEarning {
+  id                String              @id @default(uuid())
+  sellerId          String
+  orderItemId       String?             @unique
+  transactionId     String?
+  grossAmount       Int
+  commissionAmount  Int                 @default(0)
+  netAmount         Int
+  status            SellerEarningStatus @default(PENDING)
+  releasedAt        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  User      User       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  OrderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([transactionId])
+  @@index([orderItemId])
+}
+
+model MarketplaceFinancialSetting {
+  id                      String             @id @default(uuid())
+  defaultCommissionRate   Float              @default(8)
+  freeCommissionRate      Float              @default(8)
+  premiumCommissionRate   Float              @default(6)
+  businessCommissionRate  Float              @default(5)
+  paymentFeeMode          PaymentFeeMode     @default(ABSORB_BY_PLATFORM)
+  settlementSchedule      SettlementSchedule @default(MANUAL)
+  minimumSettlementAmount Int                @default(1000)
+  settlementEnabled       Boolean            @default(true)
+  marketplaceEnabled      Boolean            @default(true)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
 enum ListingStatus {
   DRAFT
   PENDING_APPROVAL
@@ -476,4 +583,32 @@ enum PaymentStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum SettlementStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SellerEarningStatus {
+  PENDING
+  AVAILABLE
+  RELEASED
+  CANCELLED
+}
+
+enum PaymentFeeMode {
+  ABSORB_BY_PLATFORM
+  DEDUCT_FROM_SELLER
+  PASS_TO_CUSTOMER
+}
+
+enum SettlementSchedule {
+  MANUAL
+  DAILY
+  WEEKLY
+  MONTHLY
 }

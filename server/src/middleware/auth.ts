@@ -22,3 +22,24 @@ export async function authenticate(
     }
 
 }
+
+export async function authorizeSeller(
+    request: any,
+    reply: any
+) {
+    const user = request.user;
+
+    if (
+        !user ||
+        (
+            user.role !== "SELLER" &&
+            user.role !== "ADMIN" &&
+            user.role !== "SUPER_ADMIN"
+        )
+    ) {
+        return reply.code(403).send({
+            success: false,
+            message: "Seller access required"
+        });
+    }
+}

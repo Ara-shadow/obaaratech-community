@@ -1,4 +1,4 @@
-import Fastify from "fastify";
+﻿import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
@@ -51,6 +51,7 @@ import sellerListingRoutes from "./modules/sellers/seller.listings.routes.js";
 // PAYSTACK
 
 import paystackRoutes from "./modules/marketplace-payments/paystack.routes.js";
+import sellerFinanceRoutes from "./modules/seller-finance/seller-finance.routes.js";
 
 
 
@@ -472,6 +473,21 @@ planRoutes,
 
 
 
+
+
+
+// ===============================
+// SELLER FINANCE
+// ===============================
+
+
+await app.register(
+sellerFinanceRoutes,
+{
+   prefix:"/api/seller-finance"
+}
+
+);
 
 
 
